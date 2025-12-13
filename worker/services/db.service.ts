@@ -335,6 +335,14 @@ export class DBService {
         return { success: true, userId: user.id };
     }
 
+    async verifyEmailDirectly(userId: string): Promise<void> {
+        // Directly mark email as verified without requiring a token
+        await this.db
+            .prepare('UPDATE users SET email_verified = 1, verification_token = NULL, verification_token_expires = NULL WHERE id = ?')
+            .bind(userId)
+            .run();
+    }
+
     async isEmailVerified(userId: string): Promise<boolean> {
         const result = await this.db
             .prepare('SELECT email_verified FROM users WHERE id = ?')

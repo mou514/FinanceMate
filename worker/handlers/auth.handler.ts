@@ -43,13 +43,15 @@ export async function signup(c: Context<{ Bindings: Env }>) {
     const userId = crypto.randomUUID();
     const user = await dbService.createUser(userId, email, passwordHash);
 
-    // Generate verification token (24 hour expiry)
-    const verificationToken = authService.generateVerificationToken();
-    const verificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-    await dbService.setVerificationToken(userId, verificationToken, verificationExpires);
-
-    // Send verification email via Brevo
+    // Handle email verification
+    let emailVerified = false;
     if (env.BREVO_API_KEY) {
+        // Generate verification token (24 hour expiry)
+        const verificationToken = authService.generateVerificationToken();
+        const verificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+        await dbService.setVerificationToken(userId, verificationToken, verificationExpires);
+
+        // Send verification email via Brevo
         const brevoService = new BrevoService(env.BREVO_API_KEY);
         const appUrl = env.APP_URL || 'http://localhost:3000';
 
@@ -67,7 +69,10 @@ export async function signup(c: Context<{ Bindings: Env }>) {
             console.log('[Signup] Verification email sent:', emailResult.messageId);
         }
     } else {
-        console.warn('[Signup] BREVO_API_KEY not configured - email verification disabled');
+        // Auto-verify email when BREVO_API_KEY is not configured
+        console.warn('[Signup] BREVO_API_KEY not configured - auto-verifying email');
+        await dbService.verifyEmailDirectly(userId);
+        emailVerified = true;
     }
 
     // Generate JWT token (but user must verify email to use protected routes)
@@ -99,10 +104,12 @@ export async function signup(c: Context<{ Bindings: Env }>) {
             user: {
                 id: user.id,
                 email: user.email,
-                emailVerified: false,
+                emailVerified: emailVerified,
             },
             token,
-            message: 'Account created. Please check your email to verify your account.',
+            message: emailVerified 
+                ? 'Account created successfully! You can now use all features.'
+                : 'Account created. Please check your email to verify your account.',
         }),
         201
     );
