@@ -20,6 +20,14 @@
     "db:migrate:prod": "wrangler d1 execute focal_expensi_db --remote --file=./migrations/001_initial_schema.sql",
     "db:migrate:002": "wrangler d1 execute focal_expensi_db --local --file=./migrations/002_quantity_real.sql",
     "db:migrate:002:prod": "wrangler d1 execute focal_expensi_db --remote --file=./migrations/002_quantity_real.sql",
+    "db:migrate:003": "wrangler d1 execute focal_expensi_db --local --file=./migrations/003_email_verification.sql",
+    "db:migrate:003:prod": "wrangler d1 execute focal_expensi_db --remote --file=./migrations/003_email_verification.sql",
+    "db:migrate:004": "wrangler d1 execute focal_expensi_db --local --file=./migrations/004_reset_password.sql",
+    "db:migrate:004:prod": "wrangler d1 execute focal_expensi_db --remote --file=./migrations/004_reset_password.sql",
+    "db:migrate:005": "wrangler d1 execute focal_expensi_db --local --file=./migrations/005_rate_limiting.sql",
+    "db:migrate:005:prod": "wrangler d1 execute focal_expensi_db --remote --file=./migrations/005_rate_limiting.sql",
+    "db:migrate:006": "wrangler d1 execute focal_expensi_db --local --file=./migrations/006_user_ai_provider.sql",
+    "db:migrate:006:prod": "wrangler d1 execute focal_expensi_db --remote --file=./migrations/006_user_ai_provider.sql",
     "setup:prod": "bash scripts/setup-production.sh"
   },
   "dependencies": {
