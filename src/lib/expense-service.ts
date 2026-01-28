@@ -1,7 +1,7 @@
 import type { Expense, ExpenseData } from '../types';
 
 // Re-export ExpenseData for components
-export type { ExpenseData } from '../types';
+export type { Expense, ExpenseData } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -34,10 +34,20 @@ export interface UserWithStats {
   email_verified: number;
   expenseCount: number;
   lastExpenseAt: number | null;
+  role: 'user' | 'admin';
+  is_active: number;
   settings: {
     currency: string;
     aiProvider: string;
   } | null;
+}
+
+export interface SystemLog {
+  id: string;
+  level: 'info' | 'warn' | 'error';
+  message: string;
+  details?: string;
+  timestamp: number;
 }
 
 export interface UserExpense extends Expense {
@@ -95,7 +105,7 @@ class ExpenseService {
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob);
-      
+
       // Add user's local date in YYYY-MM-DD format
       const userLocalDate = new Date().toISOString().split('T')[0];
       formData.append('userLocalDate', userLocalDate);
@@ -334,8 +344,54 @@ class ExpenseService {
       const result = await response.json();
       return { success: true, data: result.data };
     } catch (error: any) {
-      console.error('Failed to get admin user expenses:', error);
       return { success: false, error: error.message || 'Failed to fetch user expenses.' };
+    }
+  }
+
+  /**
+   * Toggle user active status (Ban/Unban)
+   */
+  async toggleUserStatus(userId: string, isActive: boolean): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/status`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ isActive }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        return { success: false, error: result.error || 'Failed to update user status' };
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to update user status:', error);
+      return { success: false, error: error.message || 'Failed to update user status.' };
+    }
+  }
+
+  /**
+   * Get system logs
+   */
+  async getSystemLogs(limit = 100): Promise<{ success: boolean; data?: SystemLog[]; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/logs?limit=${limit}`, {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        return { success: false, error: result.error || 'Failed to fetch logs' };
+      }
+
+      const result = await response.json();
+      return { success: true, data: result.data };
+    } catch (error: any) {
+      console.error('Failed to get system logs:', error);
+      return { success: false, error: error.message || 'Failed to fetch logs.' };
     }
   }
 

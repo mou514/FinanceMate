@@ -38,6 +38,16 @@ export interface User {
     verification_token_expires?: number | null;
     created_at: number;
     updated_at: number;
+    role?: string; // 'user' | 'admin'
+    is_active?: number; // 1 (active) or 0 (banned)
+}
+
+export interface SystemLog {
+    id: string;
+    level: 'info' | 'warn' | 'error';
+    message: string;
+    details?: string;
+    timestamp: number;
 }
 
 export interface ApiKey {
@@ -75,6 +85,16 @@ export interface Session {
     token: string;
     expires_at: number;
     created_at: number;
+}
+
+export interface Budget {
+    id: string;
+    user_id: string;
+    category: string;
+    limit_amount: number;
+    currency: string;
+    created_at: number;
+    updated_at: number;
 }
 
 export interface JWTPayload {

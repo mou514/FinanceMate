@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import {
   Loader,
   Users,
+  UserX,
+  UserCheck,
   Receipt,
   TrendingUp,
   Search,
@@ -42,6 +44,7 @@ import {
   AdminStats,
   UserWithStats,
   UserExpense,
+  SystemLog,
 } from "@/lib/expense-service";
 
 // Helper to format relative time
@@ -98,7 +101,9 @@ const UserRow: React.FC<{
   isLoadingExpenses: boolean;
   expenses: UserExpense[] | null;
   isExpanded: boolean;
-}> = ({ user, onViewExpenses, isLoadingExpenses, expenses, isExpanded }) => {
+  onToggleStatus: (userId: string, currentStatus: boolean) => void;
+  isUpdatingStatus: boolean;
+}> = ({ user, onViewExpenses, isLoadingExpenses, expenses, isExpanded, onToggleStatus, isUpdatingStatus }) => {
   const isActive =
     user.lastExpenseAt &&
     Date.now() - user.lastExpenseAt < 7 * 24 * 60 * 60 * 1000;
@@ -106,10 +111,16 @@ const UserRow: React.FC<{
   return (
     <>
       <TableRow
-        className="cursor-pointer hover:bg-muted/50"
+        className={`cursor-pointer hover:bg-muted/50 ${user.is_active === 0 ? "opacity-60 bg-red-50 dark:bg-red-950/10" : ""}`}
         onClick={() => onViewExpenses(user.email)}
       >
-        <TableCell className="font-medium">{user.email}</TableCell>
+        <TableCell className="font-medium">
+          <div className="flex items-center gap-2">
+            {user.email}
+            {user.role === 'admin' && <Badge variant="outline" className="text-xs">Admin</Badge>}
+            {user.is_active === 0 && <Badge variant="destructive" className="text-xs">Banned</Badge>}
+          </div>
+        </TableCell>
         <TableCell>
           <Badge variant={user.email_verified ? "default" : "secondary"}>
             {user.email_verified ? "Verified" : "Unverified"}
@@ -139,6 +150,23 @@ const UserRow: React.FC<{
           ) : (
             <ChevronDown className="h-4 w-4" />
           )}
+        </TableCell>
+        <TableCell onClick={(e) => e.stopPropagation()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={isUpdatingStatus || user.role === 'admin'}
+            onClick={() => onToggleStatus(user.id, user.is_active !== 0)}
+            title={user.is_active !== 0 ? "Ban User" : "Unban User"}
+          >
+            {isUpdatingStatus ? (
+              <Loader className="h-4 w-4 animate-spin" />
+            ) : user.is_active !== 0 ? (
+              <UserX className="h-4 w-4 text-destructive" />
+            ) : (
+              <UserCheck className="h-4 w-4 text-green-600" />
+            )}
+          </Button>
         </TableCell>
       </TableRow>
       {isExpanded && (
@@ -218,7 +246,11 @@ export const AdminPage: React.FC = () => {
   const [userExpenses, setUserExpenses] = useState<
     Record<string, UserExpense[]>
   >({});
+
   const [loadingExpenses, setLoadingExpenses] = useState<string | null>(null);
+  const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [updatingUser, setUpdatingUser] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdminAndLoadData();
@@ -282,6 +314,41 @@ export const AdminPage: React.FC = () => {
     setLoadingExpenses(null);
   };
 
+  const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
+    if (updatingUser) return;
+
+    // Confirm action
+    if (currentStatus && !confirm("Are you sure you want to BAN this user? They will effectively lose access to their account.")) {
+      return;
+    }
+
+    setUpdatingUser(userId);
+    const newStatus = !currentStatus; // Toggle
+
+    const result = await expenseService.toggleUserStatus(userId, newStatus);
+
+    if (result.success) {
+      toast.success(`User ${newStatus ? 'unbanned' : 'banned'} successfully`);
+      // Update local state
+      setUsers(users.map(u => u.id === userId ? { ...u, is_active: newStatus ? 1 : 0 } : u));
+    } else {
+      toast.error(result.error || "Failed to update user status");
+    }
+
+    setUpdatingUser(null);
+  };
+
+  const loadLogs = async () => {
+    setLoadingLogs(true);
+    const result = await expenseService.getSystemLogs();
+    if (result.success && result.data) {
+      setLogs(result.data);
+    } else {
+      toast.error("Failed to load system logs");
+    }
+    setLoadingLogs(false);
+  };
+
   const filteredUsers = users.filter((user) =>
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -322,6 +389,9 @@ export const AdminPage: React.FC = () => {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="logs" onClick={loadLogs}>System Logs</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -367,7 +437,7 @@ export const AdminPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 {stats?.categoryBreakdown &&
-                stats.categoryBreakdown.length > 0 ? (
+                  stats.categoryBreakdown.length > 0 ? (
                   <div className="space-y-2">
                     {stats.categoryBreakdown.map((cat) => (
                       <div
@@ -395,7 +465,7 @@ export const AdminPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 {stats?.aiProviderBreakdown &&
-                stats.aiProviderBreakdown.length > 0 ? (
+                  stats.aiProviderBreakdown.length > 0 ? (
                   <div className="space-y-2">
                     {stats.aiProviderBreakdown.map((provider) => (
                       <div
@@ -425,7 +495,7 @@ export const AdminPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 {stats?.currencyBreakdown &&
-                stats.currencyBreakdown.length > 0 ? (
+                  stats.currencyBreakdown.length > 0 ? (
                   <div className="space-y-2">
                     {stats.currencyBreakdown.map((curr) => (
                       <div
@@ -485,6 +555,9 @@ export const AdminPage: React.FC = () => {
                     <TableHead>Last Active</TableHead>
                     <TableHead>AI Provider</TableHead>
                     <TableHead>Currency</TableHead>
+                    <TableHead>AI Provider</TableHead>
+                    <TableHead>Currency</TableHead>
+                    <TableHead className="w-10"></TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -507,7 +580,60 @@ export const AdminPage: React.FC = () => {
                         isLoadingExpenses={loadingExpenses === user.email}
                         expenses={userExpenses[user.email] || null}
                         isExpanded={expandedUser === user.email}
+                        onToggleStatus={handleToggleStatus}
+                        isUpdatingStatus={updatingUser === user.id}
                       />
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* Logs Tab */}
+        <TabsContent value="logs" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium">System Logs</h3>
+            <Button variant="outline" size="sm" onClick={loadLogs} disabled={loadingLogs}>
+              {loadingLogs ? <Loader className="h-4 w-4 animate-spin mr-2" /> : null}
+              Refresh
+            </Button>
+          </div>
+          <Card>
+            <div className="overflow-x-auto max-h-[600px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Level</TableHead>
+                    <TableHead>Message</TableHead>
+                    <TableHead>Details</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                        {loadingLogs ? "Loading logs..." : "No logs found"}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    logs.map(log => (
+                      <TableRow key={log.id}>
+                        <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">
+                          {new Date(log.timestamp).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={log.level === 'error' ? 'destructive' : log.level === 'warn' ? 'secondary' : 'outline'}>
+                            {log.level.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">{log.message}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-md truncate" title={log.details || ''}>
+                          {log.details || '-'}
+                        </TableCell>
+                      </TableRow>
                     ))
                   )}
                 </TableBody>

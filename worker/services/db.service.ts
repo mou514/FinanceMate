@@ -1,4 +1,4 @@
-import { Env, User, Expense, LineItem, ApiKey, Session } from '../types';
+import { Env, User, Expense, LineItem, ApiKey, Session, Budget } from '../types';
 
 // ============ ADMIN ANALYTICS TYPES ============
 
@@ -24,6 +24,8 @@ export interface UserWithStats {
     email_verified: number;
     expenseCount: number;
     lastExpenseAt: number | null;
+    role?: string;
+    is_active?: number;
     settings: {
         currency: string;
         aiProvider: string;
@@ -170,6 +172,34 @@ export class DBService {
         };
     }
 
+    async createRecurringExpense(userId: string, expense: Omit<Expense, 'id' | 'user_id' | 'created_at' | 'updated_at'>, frequency: string): Promise<void> {
+        const id = crypto.randomUUID();
+        const now = Date.now();
+        // Calculate next due date based on frequency
+        let nextDueDate = now;
+        const dateObj = new Date(now);
+
+        switch (frequency) {
+            case 'daily':
+                nextDueDate = dateObj.setDate(dateObj.getDate() + 1);
+                break;
+            case 'weekly':
+                nextDueDate = dateObj.setDate(dateObj.getDate() + 7);
+                break;
+            case 'monthly':
+                nextDueDate = dateObj.setMonth(dateObj.getMonth() + 1);
+                break;
+            case 'yearly':
+                nextDueDate = dateObj.setFullYear(dateObj.getFullYear() + 1);
+                break;
+        }
+
+        await this.db
+            .prepare('INSERT INTO recurring_expenses (id, user_id, amount, currency, category, merchant, description, frequency, next_due_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+            .bind(id, userId, expense.total, expense.currency, expense.category, expense.merchant, null, frequency, nextDueDate, now)
+            .run();
+    }
+
     async getExpensesByUserId(userId: string): Promise<Expense[]> {
         const result = await this.db
             .prepare('SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC, created_at DESC')
@@ -260,6 +290,49 @@ export class DBService {
             .prepare('DELETE FROM expenses WHERE id = ? AND user_id = ?')
             .bind(id, userId)
             .run();
+    }
+
+    // ============ BUDGET OPERATIONS ============
+
+    async getBudgets(userId: string): Promise<Budget[]> {
+        const result = await this.db
+            .prepare('SELECT * FROM budgets WHERE user_id = ?')
+            .bind(userId)
+            .all<Budget>();
+
+        return result.results || [];
+    }
+
+    async upsertBudget(userId: string, category: string, limitAmount: number, currency: string): Promise<Budget> {
+        const now = Date.now();
+        // Check if exists
+        const existing = await this.db
+            .prepare('SELECT * FROM budgets WHERE user_id = ? AND category = ?')
+            .bind(userId, category)
+            .first<Budget>();
+
+        if (existing) {
+            await this.db
+                .prepare('UPDATE budgets SET limit_amount = ?, currency = ?, updated_at = ? WHERE id = ?')
+                .bind(limitAmount, currency, now, existing.id)
+                .run();
+            return { ...existing, limit_amount: limitAmount, currency, updated_at: now };
+        } else {
+            const id = crypto.randomUUID();
+            await this.db
+                .prepare('INSERT INTO budgets (id, user_id, category, limit_amount, currency, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+                .bind(id, userId, category, limitAmount, currency, now, now)
+                .run();
+            return {
+                id,
+                user_id: userId,
+                category,
+                limit_amount: limitAmount,
+                currency,
+                created_at: now,
+                updated_at: now,
+            };
+        }
     }
 
     // ============ SESSION OPERATIONS ============
@@ -545,7 +618,9 @@ export class DBService {
                     u.created_at,
                     COALESCE(u.email_verified, 0) as email_verified,
                     COUNT(e.id) as expenseCount,
-                    MAX(e.created_at) as lastExpenseAt
+                    MAX(e.created_at) as lastExpenseAt,
+                    u.role,
+                    u.is_active
                 FROM users u
                 LEFT JOIN expenses e ON u.id = e.user_id
                 GROUP BY u.id
@@ -558,6 +633,8 @@ export class DBService {
                 email_verified: number;
                 expenseCount: number;
                 lastExpenseAt: number | null;
+                role: string | null;
+                is_active: number | null;
             }>();
 
         const users = usersResult.results || [];
@@ -568,6 +645,9 @@ export class DBService {
             const settings = await this.getUserSettings(user.id);
             usersWithSettings.push({
                 ...user,
+                // Ensure default values for new columns
+                role: user.role || 'user',
+                is_active: user.is_active !== null ? user.is_active : 1,
                 settings: settings ? {
                     currency: settings.default_currency,
                     aiProvider: settings.ai_provider || 'gemini',
@@ -576,6 +656,36 @@ export class DBService {
         }
 
         return usersWithSettings;
+    }
+
+    async setUserRole(userId: string, role: string): Promise<void> {
+        await this.db
+            .prepare('UPDATE users SET role = ?, updated_at = ? WHERE id = ?')
+            .bind(role, Date.now(), userId)
+            .run();
+    }
+
+    async updateUserStatus(userId: string, isActive: boolean): Promise<void> {
+        await this.db
+            .prepare('UPDATE users SET is_active = ?, updated_at = ? WHERE id = ?')
+            .bind(isActive ? 1 : 0, Date.now(), userId)
+            .run();
+    }
+
+    async addSystemLog(level: 'info' | 'warn' | 'error', message: string, details?: string): Promise<void> {
+        const id = crypto.randomUUID();
+        await this.db
+            .prepare('INSERT INTO system_logs (id, level, message, details, timestamp) VALUES (?, ?, ?, ?, ?)')
+            .bind(id, level, message, details || null, Date.now())
+            .run();
+    }
+
+    async getSystemLogs(limit = 100): Promise<import('../types').SystemLog[]> {
+        const result = await this.db
+            .prepare('SELECT * FROM system_logs ORDER BY timestamp DESC LIMIT ?')
+            .bind(limit)
+            .all<import('../types').SystemLog>();
+        return result.results || [];
     }
 
     /**
@@ -607,5 +717,37 @@ export class DBService {
         }
 
         return expensesWithLineItems;
+    }
+
+    async getUserStats(userId: string): Promise<{ categoryBreakdown: { category: string; count: number; total: number }[]; monthlySpending: { month: string; total: number }[] }> {
+        // Category breakdown
+        const categoryResult = await this.db
+            .prepare('SELECT category, COUNT(*) as count, SUM(total) as total FROM expenses WHERE user_id = ? GROUP BY category ORDER BY total DESC')
+            .bind(userId)
+            .all<{ category: string; count: number; total: number }>();
+        const categoryBreakdown = categoryResult.results || [];
+
+        // Monthly spending (last 6 months)
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        // SQLite date formatting for grouping YYYY-MM
+        const monthlyResult = await this.db
+            .prepare(`
+                SELECT strftime('%Y-%m', date) as month, SUM(total) as total 
+                FROM expenses 
+                WHERE user_id = ? AND date >= ?
+                GROUP BY month 
+                ORDER BY month ASC
+            `)
+            .bind(userId, sixMonthsAgo.toISOString().split('T')[0])
+            .all<{ month: string; total: number }>();
+
+        const monthlySpending = monthlyResult.results || [];
+
+        return {
+            categoryBreakdown,
+            monthlySpending
+        };
     }
 }

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Settings, Home, Wallet, Github } from "lucide-react";
+import { Settings, Home, Wallet, Github, LayoutDashboard, TrendingUp } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
@@ -9,6 +10,7 @@ const Header: React.FC = () => {
   const activeLinkClass = "text-focal-blue-500";
   const inactiveLinkClass =
     "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white";
+  const { user } = useAuth();
   return (
     <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 border-b">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
@@ -51,6 +53,18 @@ const Header: React.FC = () => {
             >
               Expenses
             </NavLink>
+
+            <NavLink
+              to="/reports"
+              className={({ isActive }) =>
+                cn(
+                  "font-semibold transition-colors duration-200",
+                  isActive ? activeLinkClass : inactiveLinkClass
+                )
+              }
+            >
+              Reports
+            </NavLink>
           </nav>
           <div className="flex items-center gap-2">
             <Button
@@ -68,6 +82,19 @@ const Header: React.FC = () => {
                 <Github className="h-5 w-5" />
               </a>
             </Button>
+            {user?.role === "admin" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                className="hover:bg-accent text-focal-blue-500"
+                title="Admin Dashboard"
+              >
+                <NavLink to="/admin">
+                  <LayoutDashboard className="h-5 w-5" />
+                </NavLink>
+              </Button>
+            )}
             <ThemeToggle className="relative top-0 right-0" />
             <UserMenu />
           </div>
@@ -102,7 +129,7 @@ const BottomNav: React.FC = () => {
   const inactiveLinkClass = "text-gray-500 dark:text-gray-400";
   const getLinkClass = (path: string) =>
     cn(
-      "flex flex-col items-center gap-1 transition-colors duration-200 w-1/3",
+      "flex flex-col items-center gap-1 transition-colors duration-200 flex-1",
       location.pathname === path ? activeLinkClass : inactiveLinkClass
     );
   return (
@@ -114,6 +141,10 @@ const BottomNav: React.FC = () => {
       <NavLink to="/expenses" className={getLinkClass("/expenses")}>
         <Wallet className="h-6 w-6" />
         <span className="text-xs font-medium">Expenses</span>
+      </NavLink>
+      <NavLink to="/reports" className={getLinkClass("/reports")}>
+        <TrendingUp className="h-6 w-6" />
+        <span className="text-xs font-medium">Reports</span>
       </NavLink>
       <NavLink to="/settings" className={getLinkClass("/settings")}>
         <Settings className="h-6 w-6" />

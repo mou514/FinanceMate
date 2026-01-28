@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Trash2, Plus, ScanLine } from "lucide-react";
 import type { ExpenseData } from "@/lib/expense-service";
+import { EXPENSE_CATEGORIES } from "@/constants";
 interface ExpenseFormProps {
   value: ExpenseData;
   onChange: (data: ExpenseData) => void;
@@ -97,7 +98,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           <Input
             id="total"
             type="number"
-            value={value.total}
+            value={value.total === 0 ? "" : value.total}
             onChange={(e) =>
               handleFieldChange("total", parseFloat(e.target.value) || 0)
             }
@@ -105,9 +106,6 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           />
         </div>
         <div className="sm:col-span-1">
-          <Label htmlFor="category" className="text-sm">
-            Category
-          </Label>
           <Select
             value={value.category}
             onValueChange={(newValue) =>
@@ -118,12 +116,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Food & Drink">Food & Drink</SelectItem>
-              <SelectItem value="Groceries">Groceries</SelectItem>
-              <SelectItem value="Travel">Travel</SelectItem>
-              <SelectItem value="Shopping">Shopping</SelectItem>
-              <SelectItem value="Utilities">Utilities</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
+              {EXPENSE_CATEGORIES?.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -142,6 +139,47 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           />
         </div>
       </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 pb-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isRecurring"
+              checked={value.isRecurring || false}
+              onChange={(e) =>
+                handleFieldChange("isRecurring", e.target.checked)
+              }
+              className="h-4 w-4 rounded border-gray-300 text-focal-blue-600 focus:ring-focal-blue-500"
+            />
+            <Label htmlFor="isRecurring" className="text-sm cursor-pointer select-none font-medium">
+              Recurring Expense?
+            </Label>
+          </div>
+
+          {value.isRecurring && (
+            <div className="min-w-[140px]">
+              <Select
+                value={value.recurringFrequency || "monthly"}
+                onValueChange={(newValue) =>
+                  handleFieldChange("recurringFrequency", newValue)
+                }
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Frequency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="yearly">Yearly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+      </div>
+
       <h3 className="font-semibold pt-3 sm:pt-4 border-t text-sm sm:text-base">
         Line Items
       </h3>
@@ -164,7 +202,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               type="number"
               step="any"
               placeholder="Qty"
-              value={item.quantity}
+              value={item.quantity === 0 ? "" : item.quantity}
               onChange={(e) =>
                 handleLineItemChange(
                   index,
@@ -177,7 +215,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               className="col-span-4 sm:col-span-3 text-xs sm:text-sm"
               type="number"
               placeholder="Price"
-              value={item.price}
+              value={item.price === 0 ? "" : item.price}
               onChange={(e) =>
                 handleLineItemChange(
                   index,

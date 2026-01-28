@@ -8,6 +8,8 @@ import * as apiKeysHandler from './handlers/apiKeys.handler';
 import * as receiptsHandler from './handlers/receipts.handler';
 import * as errorsHandler from './handlers/errors.handler';
 import * as adminHandler from './handlers/admin.handler';
+import * as budgetsHandler from './handlers/budgets.handler';
+import * as analyticsHandler from './handlers/analytics.handler';
 
 type Variables = {
     userId: string;
@@ -62,6 +64,13 @@ export function createRouter() {
     app.get('/settings/ai-provider', authMiddleware, apiKeysHandler.getAIProvider);
     app.put('/settings/ai-provider', authMiddleware, apiKeysHandler.updateAIProvider);
 
+    // ============ BUDGET ROUTES (Protected) ============
+    app.get('/budgets', authMiddleware, budgetsHandler.getBudgets);
+    app.post('/budgets', authMiddleware, budgetsHandler.setBudget);
+
+    // ============ ANALYTICS ROUTES (Protected) ============
+    app.get('/analytics/user', authMiddleware, analyticsHandler.getUserAnalytics);
+
     // ============ ERROR LOGGING ROUTES ============
     app.post('/client-errors', errorsHandler.logClientError);
 
@@ -71,6 +80,8 @@ export function createRouter() {
     app.get('/admin/stats', authMiddleware, adminHandler.getStats);
     app.get('/admin/users', authMiddleware, adminHandler.getUsers);
     app.get('/admin/user/:email/expenses', authMiddleware, adminHandler.getUserExpenses);
+    app.post('/admin/users/:userId/status', authMiddleware, adminHandler.toggleUserStatus);
+    app.get('/admin/logs', authMiddleware, adminHandler.getSystemLogs);
 
     return app;
 }

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export function UserMenu() {
@@ -42,6 +42,15 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {user.role === "admin" && (
+          <>
+            <DropdownMenuItem onClick={() => navigate("/admin")}>
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              <span>Admin Dashboard</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>

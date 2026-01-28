@@ -7,6 +7,7 @@ type Variables = {
     userId: string;
     userEmail: string;
     token: string;
+    userRole?: string;
 };
 
 /**
@@ -107,6 +108,11 @@ export async function authMiddleware(c: Context<{ Bindings: Env; Variables: Vari
     c.set('userId', payload.userId);
     c.set('userEmail', payload.email);
     c.set('token', token);
+
+    // Attach role if available
+    if (user && user.role) {
+        c.set('userRole', user.role);
+    }
 
     await next();
 }

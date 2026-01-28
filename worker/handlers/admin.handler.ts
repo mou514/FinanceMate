@@ -7,6 +7,7 @@ type Variables = {
     userId: string;
     userEmail: string;
     token: string;
+    userRole?: string;
 };
 
 // Use 'any' for the context path param to be compatible with router
@@ -19,7 +20,8 @@ type HonoContext = Context<{ Bindings: Env; Variables: Variables }, any>;
  */
 export async function getStats(c: HonoContext) {
     const userEmail = c.get('userEmail');
-    if (!userEmail || !isAdmin(userEmail, c.env)) {
+    const userRole = c.get('userRole');
+    if (!userEmail || !isAdmin(userEmail, c.env, userRole)) {
         return c.notFound();
     }
 
@@ -43,7 +45,8 @@ export async function getStats(c: HonoContext) {
  */
 export async function getUsers(c: HonoContext) {
     const userEmail = c.get('userEmail');
-    if (!userEmail || !isAdmin(userEmail, c.env)) {
+    const userRole = c.get('userRole');
+    if (!userEmail || !isAdmin(userEmail, c.env, userRole)) {
         return c.notFound();
     }
 
@@ -67,7 +70,8 @@ export async function getUsers(c: HonoContext) {
  */
 export async function getUserExpenses(c: HonoContext) {
     const userEmail = c.get('userEmail');
-    if (!userEmail || !isAdmin(userEmail, c.env)) {
+    const userRole = c.get('userRole');
+    if (!userEmail || !isAdmin(userEmail, c.env, userRole)) {
         return c.notFound();
     }
 
@@ -96,11 +100,12 @@ export async function getUserExpenses(c: HonoContext) {
  */
 export async function checkAdmin(c: HonoContext) {
     const userEmail = c.get('userEmail');
+    const userRole = c.get('userRole');
     if (!userEmail) {
         return c.notFound();
     }
 
-    const adminStatus = isAdmin(userEmail, c.env);
+    const adminStatus = isAdmin(userEmail, c.env, userRole);
     if (!adminStatus) {
         return c.notFound();
     }
@@ -109,4 +114,72 @@ export async function checkAdmin(c: HonoContext) {
         success: true,
         data: { isAdmin: true },
     });
+}
+
+/**
+ * Toggle user active status (Ban/Unban)
+ * POST /api/admin/users/:userId/status
+ */
+export async function toggleUserStatus(c: HonoContext) {
+    const userEmail = c.get('userEmail');
+    const userRole = c.get('userRole'); // Now available from auth middleware
+
+    // Double check admin status (env or DB)
+    if (!userEmail || !isAdmin(userEmail, c.env, userRole)) {
+        return c.notFound();
+    }
+
+    try {
+        const userId = c.req.param('userId');
+        const body = await c.req.json();
+        const { isActive } = body;
+
+        if (typeof isActive !== 'boolean') {
+            return c.json({ success: false, error: 'isActive boolean is required' }, 400);
+        }
+
+        const db = new DBService(c.env.DB);
+
+        // Prevent banning self
+        if (userId === c.get('userId')) {
+            return c.json({ success: false, error: 'Cannot change your own status' }, 400);
+        }
+
+        await db.updateUserStatus(userId, isActive);
+
+        return c.json({
+            success: true,
+            data: { userId, isActive },
+        });
+    } catch (error: any) {
+        console.error('Admin user status error:', error);
+        return c.json({ success: false, error: 'Failed to update user status' }, 500);
+    }
+}
+
+/**
+ * Get system logs
+ * GET /api/admin/logs
+ */
+export async function getSystemLogs(c: HonoContext) {
+    const userEmail = c.get('userEmail');
+    const userRole = c.get('userRole');
+
+    if (!userEmail || !isAdmin(userEmail, c.env, userRole)) {
+        return c.notFound();
+    }
+
+    try {
+        const db = new DBService(c.env.DB);
+        const limit = Number(c.req.query('limit')) || 100;
+        const logs = await db.getSystemLogs(limit);
+
+        return c.json({
+            success: true,
+            data: logs,
+        });
+    } catch (error: any) {
+        console.error('Admin logs error:', error);
+        return c.json({ success: false, error: 'Failed to fetch logs' }, 500);
+    }
 }

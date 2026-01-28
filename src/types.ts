@@ -14,6 +14,8 @@ export interface Expense {
     lineItems: LineItem[];
     currency: string;
     category: string;
+    isRecurring?: boolean;
+    recurringFrequency?: 'daily' | 'weekly' | 'monthly' | 'yearly';
 }
 
 export type ExpenseData = Omit<Expense, 'id'>;

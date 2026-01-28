@@ -105,9 +105,10 @@ export async function signup(c: Context<{ Bindings: Env }>) {
                 id: user.id,
                 email: user.email,
                 emailVerified: emailVerified,
+                role: 'user', // Default role
             },
             token,
-            message: emailVerified 
+            message: emailVerified
                 ? 'Account created successfully! You can now use all features.'
                 : 'Account created. Please check your email to verify your account.',
         }),
@@ -174,6 +175,7 @@ export async function login(c: Context<{ Bindings: Env }>) {
                 id: user.id,
                 email: user.email,
                 emailVerified: user.email_verified === 1,
+                role: user.role,
             },
             token,
         })
@@ -221,6 +223,7 @@ export async function me(c: Context<{ Bindings: Env; Variables: Variables }>) {
             id: user.id,
             email: user.email,
             emailVerified: user.email_verified === 1,
+            role: user.role,
             created_at: user.created_at,
         })
     );
