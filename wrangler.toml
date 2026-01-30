@@ -13,7 +13,7 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "focal_expensi_db"
-database_id = "85a073b1-3c48-4a21-bf35-68e7c473d654"
+database_id = "2c3d6a69-e2ca-4a94-98a0-0def7b7bf404"
 
 # Environment variables (use wrangler secrets for production)
 [vars]
