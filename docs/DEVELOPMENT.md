@@ -15,7 +15,7 @@ Complete guide for setting up and developing Focal locally.
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/Creative-Geek/Focal.git
+git clone https://github.com/mou514/FinanceMate.git
 cd Focal
 pnpm install
 ```

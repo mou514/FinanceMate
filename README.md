@@ -33,7 +33,7 @@ A modern, privacy-focused expense tracking Progressive Web App (PWA) with AI-pow
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/FinanceMate.git
+git clone https://github.com/mou514/FinanceMate.git
 cd FinanceMate
 
 # Install dependencies
@@ -100,7 +100,7 @@ Built with [React](https://react.dev), [Cloudflare](https://cloudflare.com), [sh
 
 <div align="center">
 
-**[Documentation](docs/DEVELOPMENT.md)** • **[Report Bug](https://github.com/yourusername/FinanceMate/issues)**
+**[Documentation](docs/DEVELOPMENT.md)** • **[Report Bug](https://github.com/mou514/FinanceMate/issues)**
 
 Track smarter, spend better 💙
 

@@ -61,7 +61,7 @@ export function Navbar() {
               className="hover:bg-accent"
             >
               <a
-                href="https://github.com/Creative-Geek/Focal"
+                href="https://github.com/mou514/FinanceMate"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="View on GitHub"

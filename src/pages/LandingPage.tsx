@@ -261,7 +261,7 @@ export function LandingPage() {
                     asChild
                   >
                     <a
-                      href="https://github.com/Creative-Geek/Focal"
+                      href="https://github.com/mou514/FinanceMate"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -345,7 +345,7 @@ export function LandingPage() {
                     asChild
                   >
                     <a
-                      href="https://github.com/Creative-Geek/Focal"
+                      href="https://github.com/mou514/FinanceMate"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -564,7 +564,7 @@ export function LandingPage() {
                 asChild
               >
                 <a
-                  href="https://github.com/Creative-Geek/Focal"
+                  href="https://github.com/mou514/FinanceMate"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
