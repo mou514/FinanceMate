@@ -28,7 +28,7 @@ const FabInteraction: React.FC = () => {
     <motion.button
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      onClick={() => navigate('/home')} // Assuming home opens camera by default or we scroll to it
+      onClick={() => navigate('/expenses')}
       className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-50 bg-primary text-primary-foreground p-4 rounded-2xl shadow-lg hover:shadow-xl transition-shadow flex items-center gap-2"
     >
       <Camera className="h-6 w-6" />
