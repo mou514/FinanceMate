@@ -25,12 +25,12 @@ export function Navbar() {
             onClick={handleLogoClick}
           >
             <img
-              src="/focal-icon.svg"
-              alt="Focal"
+              src="/financemate-icon.png"
+              alt="FinanceMate"
               className="h-10 w-10 rounded-lg"
             />
             <span className="text-xl font-bold text-foreground">
-              Focal Finance
+              FinanceMate
             </span>
           </div>
           <div className="hidden md:flex items-center gap-8">

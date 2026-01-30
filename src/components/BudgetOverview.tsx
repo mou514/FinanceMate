@@ -83,7 +83,7 @@ export const BudgetOverview: React.FC = () => {
                                     {spent.toFixed(2)} / {budget.limit_amount.toFixed(2)} {budget.currency}
                                 </span>
                             </div>
-                            <Progress value={percentage} className={`h-2 ${isOver ? 'bg-red-100' : ''}`} indicatorClassName={isOver ? 'bg-destructive' : ''} />
+                            <Progress value={percentage} className={`h-2 ${isOver ? 'bg-red-100' : 'bg-red-50'}`} indicatorClassName={isOver ? 'bg-red-600' : 'bg-red-500'} />
                         </div>
                     );
                 })}

@@ -73,7 +73,7 @@ export const SettingsPage: React.FC = () => {
         if (format === "json") {
           const jsonString = JSON.stringify(data, null, 2);
           blob = new Blob([jsonString], { type: "application/json" });
-          filename = `focal-expenses-${new Date().toISOString().split("T")[0]}.json`;
+          filename = `financemate-expenses-${new Date().toISOString().split("T")[0]}.json`;
         } else {
           // Convert to CSV
           const headers = [
@@ -100,7 +100,7 @@ export const SettingsPage: React.FC = () => {
           }
 
           blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
-          filename = `focal-expenses-${new Date().toISOString().split("T")[0]}.csv`;
+          filename = `financemate-expenses-${new Date().toISOString().split("T")[0]}.csv`;
         }
 
         // Trigger download

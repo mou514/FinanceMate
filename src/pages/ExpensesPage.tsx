@@ -686,7 +686,7 @@ export const ExpensesPage: React.FC = () => {
                                   size="icon"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                  <Trash2 className="h-4 w-4 text-red-600 hover:text-red-700" />
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>

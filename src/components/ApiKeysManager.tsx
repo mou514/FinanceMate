@@ -129,7 +129,7 @@ export const ApiKeysManager: React.FC = () => {
                     <Key className="h-8 w-8 mx-auto text-muted-foreground mb-3 opacity-50" />
                     <h3 className="text-sm font-medium">No API Keys</h3>
                     <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-                        Generate an API key to allow external applications to access your Focal account.
+                        Generate an API key to allow external applications to access your FinanceMate account.
                     </p>
                 </div>
             ) : (

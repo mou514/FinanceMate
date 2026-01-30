@@ -15,6 +15,8 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { expenseService } from "@/lib/expense-service";
+import { getCurrencySymbol } from "@/lib/currency-utils";
+import { useUserSettings } from "@/hooks/useUserSettings";
 
 interface UserStats {
     categoryBreakdown: { category: string; count: number; total: number }[];
@@ -39,6 +41,8 @@ const COLORS = [
 ];
 
 export const ReportsPage: React.FC = () => {
+    const { defaultCurrency } = useUserSettings();
+    const currencySymbol = getCurrencySymbol(defaultCurrency);
     const [stats, setStats] = useState<UserStats | null>(null);
     const [trends, setTrends] = useState<{ topCategory: string; currentAmount: number; previousAmount: number; percentageChange: number } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -183,7 +187,7 @@ export const ReportsPage: React.FC = () => {
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">${stats.forecast.forecastTotal.toFixed(2)}</div>
+                            <div className="text-2xl font-bold">{currencySymbol}{stats.forecast.forecastTotal.toFixed(2)}</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 {stats.forecast.status === 'on_track' ? 'On track regarding budget' :
                                     stats.forecast.status === 'at_risk' ? 'Projected to exceed budget' :
@@ -200,7 +204,7 @@ export const ReportsPage: React.FC = () => {
                                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">${summary.totalSpend.toFixed(2)}</div>
+                                    <div className="text-2xl font-bold">{currencySymbol}{summary.totalSpend.toFixed(2)}</div>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         Across {summary.totalTx} transactions
                                     </p>
@@ -212,7 +216,7 @@ export const ReportsPage: React.FC = () => {
                                     <CreditCard className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">${summary.avgTx.toFixed(2)}</div>
+                                    <div className="text-2xl font-bold">{currencySymbol}{summary.avgTx.toFixed(2)}</div>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         Per expense entry
                                     </p>
@@ -228,7 +232,7 @@ export const ReportsPage: React.FC = () => {
                                         {summary.topCategory ? summary.topCategory.category : "N/A"}
                                     </div>
                                     <div className="text-xs text-muted-foreground mt-1">
-                                        {summary.topCategory ? `$${summary.topCategory.total.toFixed(2)} spent` : "No data"}
+                                        {summary.topCategory ? `${currencySymbol}${summary.topCategory.total.toFixed(2)} spent` : "No data"}
                                     </div>
                                     {trends && (
                                         <div className={`text-xs mt-2 font-medium ${trends.percentageChange > 0 ? 'text-destructive' : 'text-emerald-500'}`}>
@@ -277,7 +281,7 @@ export const ReportsPage: React.FC = () => {
                                         ))}
                                     </Pie>
                                     <Tooltip
-                                        formatter={(value: number) => `$${value.toFixed(2)}`}
+                                        formatter={(value: number) => `${currencySymbol}${value.toFixed(2)}`}
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                     />
                                     <Legend verticalAlign="bottom" height={36} iconType="circle" />
@@ -309,11 +313,11 @@ export const ReportsPage: React.FC = () => {
                                         axisLine={false}
                                         tickLine={false}
                                         tick={{ fill: 'currentColor', opacity: 0.7 }}
-                                        tickFormatter={(value) => `$${value}`}
+                                        tickFormatter={(value) => `${currencySymbol}${value}`}
                                     />
                                     <Tooltip
                                         cursor={{ fill: 'var(--muted)', opacity: 0.2 }}
-                                        formatter={(value: number) => [`$${value.toFixed(2)}`, 'Total Spent']}
+                                        formatter={(value: number) => [`${currencySymbol}${value.toFixed(2)}`, 'Total Spent']}
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                     />
                                     <Bar

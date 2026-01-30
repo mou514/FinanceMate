@@ -226,12 +226,18 @@ export const HomePage: React.FC = () => {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="text-center space-y-4 sm:space-y-6 z-10 w-full max-w-4xl"
         >
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl xl:text-7xl font-display font-bold text-balance leading-tight px-2">
-            Scan, Review, Done.
-          </h1>
+          {/* Personalized Greeting */}
+          <div className="space-y-2">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground">
+              {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {user?.email?.split('@')[0] || "there"}!
+            </h2>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-display font-bold text-balance leading-tight px-2">
+              Track Your Spending with Ease
+            </h1>
+          </div>
           <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto text-pretty px-2 sm:px-4">
-            Instantly capture, analyze, and organize your expenses with a single
-            photo. The fastest way to track your spending.
+            Instantly capture and organize your expenses with AI-powered receipt scanning.
+            FinanceMate makes expense tracking effortless.
           </p>
 
           {/* Currency Banner */}

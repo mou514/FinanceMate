@@ -1,1 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#111827"/><stop offset="100%" stop-color="#1f2937"/></linearGradient></defs><rect width="1024" height="1024" fill="url(#g)" rx="200"/><rect width="704" height="40" x="160" y="492" fill="#3b82f6" rx="20"/><circle cx="512" cy="512" r="140" fill="none" stroke="#93c5fd" stroke-width="32"/><circle cx="512" cy="512" r="16" fill="#3b82f6"/></svg>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a78bfa;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#iconGradient)"/>
+  
+  <!-- Camera Lens Outer Ring -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="white" stroke-width="24" opacity="0.9"/>
+  
+  <!-- Camera Lens Inner Ring -->
+  <circle cx="256" cy="256" r="140" fill="none" stroke="white" stroke-width="20" opacity="0.7"/>
+  
+  <!-- Aperture Blades (6 segments creating lens effect) -->
+  <path d="M 256 116 L 256 140 A 116 116 0 0 1 356 200 L 340 216 A 96 96 0 0 0 256 160 Z" fill="white" opacity="0.3"/>
+  <path d="M 356 200 L 340 216 A 96 96 0 0 1 340 296 L 356 312 A 116 116 0 0 0 356 200 Z" fill="white" opacity="0.3"/>
+  <path d="M 340 296 L 356 312 A 116 116 0 0 1 256 372 L 256 352 A 96 96 0 0 0 340 296 Z" fill="white" opacity="0.3"/>
+  <path d="M 256 372 L 256 352 A 96 96 0 0 1 156 296 L 172 312 A 116 116 0 0 0 256 372 Z" fill="white" opacity="0.3"/>
+  <path d="M 156 296 L 172 312 A 96 96 0 0 1 172 200 L 156 216 A 116 116 0 0 0 156 296 Z" fill="white" opacity="0.3"/>
+  <path d="M 172 200 L 156 216 A 116 116 0 0 1 256 116 L 256 140 A 96 96 0 0 0 172 200 Z" fill="white" opacity="0.3"/>
+  
+  <!-- Dollar Sign -->
+  <g transform="translate(256, 256)">
+    <!-- Vertical line of $ -->
+    <rect x="-8" y="-100" width="16" height="200" fill="white" rx="8"/>
+    
+    <!-- Top curve of S -->
+    <path d="M -60 -60 Q -60 -90 -20 -90 L 20 -90 Q 60 -90 60 -60 Q 60 -30 20 -30 L -40 -30" 
+          fill="none" stroke="white" stroke-width="28" stroke-linecap="round"/>
+    
+    <!-- Bottom curve of S -->
+    <path d="M 60 60 Q 60 90 20 90 L -20 90 Q -60 90 -60 60 Q -60 30 -20 30 L 40 30" 
+          fill="none" stroke="white" stroke-width="28" stroke-linecap="round"/>
+  </g>
+</svg>
