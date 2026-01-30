@@ -19,14 +19,13 @@ database_id = "50b93ec7-c367-4438-8f49-5ea9e12fb600"
 [vars]
 NODE_ENV = "production"
 AI_PROVIDER = "gemini"  # Options: 'gemini' | 'openai' | 'nvidia' | 'groq'
-SUPER_ADMIN_EMAIL = "admin@admin.com"
 
 # Production secrets (set using wrangler secret put):
 # JWT_SECRET - Secret key for JWT token signing
 # ENCRYPTION_KEY - Key for encrypting sensitive data in database
+# SUPER_ADMIN_EMAIL - Email address for super admin access (e.g., admin@example.com)
 # BREVO_API_KEY - (Optional) Brevo API key for sending transactional emails
 # APP_URL - (Optional) Application URL for email verification links (e.g., https://focal-expense.app)
-# ADMIN_EMAIL - (Optional) Email address for admin access (e.g., admin@example.com)
 #
 # AI Provider Secrets (configure the one matching your AI_PROVIDER):
 # GEMINI_API_KEY - Google Gemini API key (for AI_PROVIDER=gemini)
