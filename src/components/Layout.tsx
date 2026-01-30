@@ -140,6 +140,7 @@ const MobileTopBar: React.FC = () => {
         <span className="font-display font-bold text-lg">FinanceMate</span>
       </div>
       <div className="flex items-center gap-2">
+        <ThemeToggle className="hover:bg-secondary/50 p-2 rounded-xl transition-colors" />
         <NotificationBell />
         <UserMenu />
       </div>
