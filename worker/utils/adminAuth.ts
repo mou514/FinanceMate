@@ -1,13 +1,13 @@
 import { Env } from '../types';
 
 /**
- * Check if a user email matches the admin email
- * Returns false if ADMIN_EMAIL is not configured
+ * Check if a user is an admin
+ * Checks both SUPER_ADMIN_EMAIL environment variable and database role
  */
 export function isAdmin(email: string, env: Env, userRole?: string): boolean {
-    // Check environment variable (legacy/owner)
-    const adminEmail = env.ADMIN_EMAIL;
-    if (adminEmail && email.toLowerCase() === adminEmail.toLowerCase()) {
+    // Check SUPER_ADMIN_EMAIL environment variable
+    const superAdminEmail = env.SUPER_ADMIN_EMAIL;
+    if (superAdminEmail && email.toLowerCase() === superAdminEmail.toLowerCase()) {
         return true;
     }
 
