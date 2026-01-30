@@ -88,7 +88,7 @@ export default ({ mode }: { mode: string }) => {
       watchDependenciesPlugin(),
       VitePWA({
         registerType: "autoUpdate",
-        manifestFilename: "site.webmanifest",
+        manifestFilename: "manifest.webmanifest",
         includeAssets: [
           // include favicon or other static assets if needed
           "focal-icon.svg",

@@ -12,7 +12,7 @@ export function isAdmin(email: string, env: Env, userRole?: string): boolean {
     }
 
     // Check database role if provided
-    if (userRole === 'admin') {
+    if (userRole === 'admin' || userRole === 'super_admin') {
         return true;
     }
 

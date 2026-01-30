@@ -34,8 +34,10 @@ export interface UserWithStats {
   email_verified: number;
   expenseCount: number;
   lastExpenseAt: number | null;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'super_admin';
   is_active: number;
+  ban_reason?: string | null;
+  last_active_at?: number | null; // Added
   settings: {
     currency: string;
     aiProvider: string;
@@ -169,9 +171,13 @@ class ExpenseService {
   /**
    * Get all expenses for the current user
    */
-  async getExpenses(): Promise<{ success: boolean; data?: Expense[]; error?: string }> {
+  async getExpenses(query?: string): Promise<{ success: boolean; data?: Expense[]; error?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/expenses`, {
+      const url = query
+        ? `${API_BASE_URL}/expenses?q=${encodeURIComponent(query)}`
+        : `${API_BASE_URL}/expenses`;
+
+      const response = await fetch(url, {
         headers: getAuthHeaders(),
         credentials: 'include',
       });
@@ -250,9 +256,27 @@ class ExpenseService {
   // ============ ADMIN METHODS ============
 
   /**
+   * Get current user profile
+   */
+  async authMe(): Promise<{ success: boolean; data?: UserWithStats; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        return { success: false, error: 'Failed to fetch user profile' };
+      }
+      const data = await response.json();
+      return { success: true, data: data.user || data };
+    } catch (error) {
+      return { success: false, error: 'Network error' };
+    }
+  }
+
+  /**
    * Check if current user is an admin
    */
-  async checkAdmin(): Promise<{ success: boolean; isAdmin: boolean }> {
+  async checkAdmin(): Promise<{ success: boolean; isAdmin: boolean; role?: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/admin/check`, {
         headers: getAuthHeaders(),
@@ -264,7 +288,11 @@ class ExpenseService {
       }
 
       const result = await response.json();
-      return { success: true, isAdmin: result.data?.isAdmin === true };
+      return {
+        success: true,
+        isAdmin: result.data?.isAdmin === true,
+        role: result.data?.role
+      };
     } catch (error: any) {
       console.error('Admin check error:', error);
       return { success: false, isAdmin: false };
@@ -349,15 +377,39 @@ class ExpenseService {
   }
 
   /**
+   * Set user role (Super Admin only)
+   */
+  async setUserRole(userId: string, role: 'user' | 'admin' | 'super_admin'): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/role`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ role }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        return { success: false, error: result.error || 'Failed to update user role' };
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to update user role:', error);
+      return { success: false, error: error.message || 'Failed to update user role.' };
+    }
+  }
+
+  /**
    * Toggle user active status (Ban/Unban)
    */
-  async toggleUserStatus(userId: string, isActive: boolean): Promise<{ success: boolean; error?: string }> {
+  async toggleUserStatus(userId: string, isActive: boolean, banReason?: string): Promise<{ success: boolean; error?: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/status`, {
         method: 'POST',
         headers: getAuthHeaders(),
         credentials: 'include',
-        body: JSON.stringify({ isActive }),
+        body: JSON.stringify({ isActive, banReason }),
       });
 
       if (!response.ok) {
@@ -369,6 +421,29 @@ class ExpenseService {
     } catch (error: any) {
       console.error('Failed to update user status:', error);
       return { success: false, error: error.message || 'Failed to update user status.' };
+    }
+  }
+
+  /**
+   * Delete a user (Super Admin only)
+   */
+  async deleteUser(userId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        return { success: false, error: result.error || 'Failed to delete user' };
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to delete user:', error);
+      return { success: false, error: error.message || 'Failed to delete user.' };
     }
   }
 
@@ -395,6 +470,116 @@ class ExpenseService {
     }
   }
 
-}
+  /**
+   * Get AI Analytics
+   */
+  async getAIAnalytics(days = 30): Promise<{
+    success: boolean;
+    data?: {
+      totalRequests: number;
+      successRate: number;
+      avgDuration: number;
+      providerBreakdown: { provider: string; count: number }[];
+      dailyStats: { date: string; count: number; avgDuration: number }[];
+    };
+    error?: string;
+  }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/analytics/ai?days=${days}`, {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
 
+      if (!response.ok) {
+        const result = await response.json();
+        return { success: false, error: result.error || 'Failed to fetch AI analytics' };
+      }
+
+      const result = await response.json();
+      return { success: true, data: result.data };
+    } catch (error: any) {
+      console.error('Failed to get AI analytics:', error);
+      return { success: false, error: error.message || 'Failed to fetch AI analytics.' };
+    }
+  }
+  async getAnalyticsHistory(months: number = 6): Promise<{ success: boolean; data?: { month: string; total: number }[]; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/analytics/history?months=${months}`, {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      const result = await response.json();
+      return { success: result.success, data: result.data, error: result.error };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getSpendingForecast(): Promise<{ success: boolean; data?: { currentMonthTotal: number; forecastTotal: number; totalBudget: number; status: 'on_track' | 'at_risk' | 'over_budget' }; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/analytics/forecast`, {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      const result = await response.json();
+      return { success: result.success, data: result.data, error: result.error };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getTrends(): Promise<{ success: boolean; data?: { topCategory: string; currentAmount: number; previousAmount: number; percentageChange: number } | null; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/analytics/trends`, {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      const result = await response.json();
+      return { success: result.success, data: result.data, error: result.error };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ============ TAGS METHODS ============
+
+  async getTags(): Promise<{ success: boolean; data?: import('@/types').Tag[]; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tags`, {
+        headers: getAuthHeaders(),
+      });
+      const result = await response.json();
+      return { success: result.success, data: result.data, error: result.error };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async createTag(name: string, color?: string): Promise<{ success: boolean; data?: import('@/types').Tag; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tags`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ name, color }),
+      });
+      const result = await response.json();
+      return { success: result.success, data: result.data, error: result.error };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async deleteTag(id: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tags/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const result = await response.json();
+      return { success: result.success, error: result.error };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+} // End of class
 export const expenseService = new ExpenseService();

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { FileDown, Loader, Save, Info } from "lucide-react";
 import { expenseService } from "@/lib/expense-service";
 import { BudgetSettings } from "@/components/BudgetSettings";
+import { ApiKeysManager } from "@/components/ApiKeysManager";
+import { CategoryManager } from "@/components/CategoryManager";
+import { TagsManager } from "@/components/TagsManager";
 import { useUserSettings, AIProvider } from "@/hooks/useUserSettings";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -44,7 +47,6 @@ export const SettingsPage: React.FC = () => {
   }, [defaultCurrency, savedAiProvider]);
 
   const handleSave = async () => {
-    // ... existing save logic
     const success = await updateSettings({
       defaultCurrency: currency,
       aiProvider: aiProvider,
@@ -245,6 +247,18 @@ export const SettingsPage: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="pt-6 border-t">
+            <ApiKeysManager />
+          </div>
+
+          <div className="pt-6 border-t">
+            <CategoryManager />
+          </div>
+
+          <div className="pt-6 border-t">
+            <TagsManager />
           </div>
 
           <div className="pt-6 border-t">

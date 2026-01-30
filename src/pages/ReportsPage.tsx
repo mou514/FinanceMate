@@ -15,11 +15,16 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { expenseService } from "@/lib/expense-service";
-import { format } from "date-fns";
 
 interface UserStats {
     categoryBreakdown: { category: string; count: number; total: number }[];
     monthlySpending: { month: string; total: number }[];
+    forecast: {
+        currentMonthTotal: number;
+        forecastTotal: number;
+        totalBudget: number;
+        status: 'on_track' | 'at_risk' | 'over_budget';
+    } | null;
 }
 
 const COLORS = [
@@ -35,22 +40,29 @@ const COLORS = [
 
 export const ReportsPage: React.FC = () => {
     const [stats, setStats] = useState<UserStats | null>(null);
+    const [trends, setTrends] = useState<{ topCategory: string; currentAmount: number; previousAmount: number; percentageChange: number } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const processData = async () => {
             try {
-                const response = await expenseService.getExpenses();
+                // Fetch expenses for category breakdown (still client-side for now)
+                const expensesResponse = await expenseService.getExpenses();
 
-                if (response.success && response.data) {
-                    const expenses = response.data;
+                // Fetch backend analytics
+                const historyResponse = await expenseService.getAnalyticsHistory();
+                const forecastResponse = await expenseService.getSpendingForecast();
+                const trendsResponse = await expenseService.getTrends();
 
-                    // Client-side Aggregation Logic
+                if (expensesResponse.success && expensesResponse.data &&
+                    historyResponse.success && historyResponse.data &&
+                    forecastResponse.success && forecastResponse.data) {
 
-                    // 1. Category Breakdown
+                    const expenses = expensesResponse.data;
+
+                    // 1. Category Breakdown (Client-side)
                     const categoryMap = new Map<string, { count: number; total: number }>();
-
                     expenses.forEach(exp => {
                         const cat = exp.category || 'Uncategorized';
                         const current = categoryMap.get(cat) || { count: 0, total: 0 };
@@ -64,38 +76,23 @@ export const ReportsPage: React.FC = () => {
                         .map(([category, data]) => ({ category, ...data }))
                         .sort((a, b) => b.total - a.total);
 
-                    // 2. Monthly Spending (Last 6 Months)
-                    const monthlyMap = new Map<string, number>();
-                    const sixMonthsAgo = new Date();
-                    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5); // Include current month
-                    sixMonthsAgo.setDate(1); // Start of month
+                    // 2. Monthly Spending (Server-side)
+                    const monthlySpending = historyResponse.data;
 
-                    expenses.forEach(exp => {
-                        const expDate = new Date(exp.date);
-                        if (expDate >= sixMonthsAgo) {
-                            const monthKey = format(expDate, 'yyyy-MM');
-                            monthlyMap.set(monthKey, (monthlyMap.get(monthKey) || 0) + exp.total);
-                        }
-                    });
+                    // 3. Forecast (Server-side)
+                    const forecast = forecastResponse.data;
 
-                    // Fill in missing months for better chart
-                    const monthlySpending = [];
-                    for (let i = 0; i < 6; i++) {
-                        const d = new Date(sixMonthsAgo);
-                        d.setMonth(d.getMonth() + i);
-                        const key = format(d, 'yyyy-MM');
-                        monthlySpending.push({
-                            month: key,
-                            total: monthlyMap.get(key) || 0
-                        });
+                    setStats({ categoryBreakdown, monthlySpending, forecast });
+
+                    if (trendsResponse.success && trendsResponse.data) {
+                        setTrends(trendsResponse.data);
                     }
-
-                    setStats({ categoryBreakdown, monthlySpending });
                 } else {
-                    setError(response.error || "Failed to fetch expenses");
+                    setError(expensesResponse.error || historyResponse.error || forecastResponse.error || "Failed to fetch data");
                 }
-            } catch (err) {
-                setError("An error occurred while fetching data");
+            } catch (err: any) {
+                console.error("Reports Page Error:", err);
+                setError(`An error occurred: ${err.message || String(err)}`);
             } finally {
                 setIsLoading(false);
             }
@@ -107,14 +104,14 @@ export const ReportsPage: React.FC = () => {
     const summary = useMemo(() => {
         if (!stats) return null;
 
-        // Recalculate totals from the breakdown to stay consistent
         const totalSpend = stats.categoryBreakdown.reduce((acc, curr) => acc + curr.total, 0);
         const totalTx = stats.categoryBreakdown.reduce((acc, curr) => acc + curr.count, 0);
         const avgTx = totalTx > 0 ? totalSpend / totalTx : 0;
-        const topCategory = stats.categoryBreakdown.length > 0 ? stats.categoryBreakdown[0] : null;
+        // Use trends for top category if available, otherwise fallback
+        const topCategory = trends ? { category: trends.topCategory, total: trends.currentAmount } : (stats.categoryBreakdown.length > 0 ? stats.categoryBreakdown[0] : null);
 
         return { totalSpend, totalTx, avgTx, topCategory };
-    }, [stats]);
+    }, [stats, trends]);
 
     if (isLoading) {
         return (
@@ -174,47 +171,80 @@ export const ReportsPage: React.FC = () => {
                 </p>
             </header>
 
-            {/* Summary Cards */}
-            {summary && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card className="shadow-md hover:shadow-lg transition-shadow border-l-4 border-l-focal-blue-500">
+            {/* Forecast Card */}
+            {stats.forecast && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <Card className={`shadow-md hover:shadow-lg transition-shadow border-l-4 ${stats.forecast.status === 'on_track' ? 'border-l-emerald-500' :
+                        stats.forecast.status === 'at_risk' ? 'border-l-amber-500' :
+                            'border-l-destructive'
+                        }`}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">Spending Forecast</CardTitle>
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">${summary.totalSpend.toFixed(2)}</div>
+                            <div className="text-2xl font-bold">${stats.forecast.forecastTotal.toFixed(2)}</div>
                             <p className="text-xs text-muted-foreground mt-1">
-                                Across {summary.totalTx} transactions
+                                {stats.forecast.status === 'on_track' ? 'On track regarding budget' :
+                                    stats.forecast.status === 'at_risk' ? 'Projected to exceed budget' :
+                                        'Already over budget'}
                             </p>
                         </CardContent>
                     </Card>
-                    <Card className="shadow-md hover:shadow-lg transition-shadow border-l-4 border-l-emerald-500">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Average Transaction</CardTitle>
-                            <CreditCard className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">${summary.avgTx.toFixed(2)}</div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Per expense entry
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card className="shadow-md hover:shadow-lg transition-shadow border-l-4 border-l-amber-500">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Top Category</CardTitle>
-                            <PieChartIcon className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold truncate">
-                                {summary.topCategory ? summary.topCategory.category : "N/A"}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                {summary.topCategory ? `$${summary.topCategory.total.toFixed(2)} spent` : "No data"}
-                            </p>
-                        </CardContent>
-                    </Card>
+
+                    {summary && (
+                        <>
+                            <Card className="shadow-md hover:shadow-lg transition-shadow border-l-4 border-l-focal-blue-500">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+                                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">${summary.totalSpend.toFixed(2)}</div>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Across {summary.totalTx} transactions
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="shadow-md hover:shadow-lg transition-shadow border-l-4 border-l-emerald-500">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Average Transaction</CardTitle>
+                                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">${summary.avgTx.toFixed(2)}</div>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Per expense entry
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="shadow-md hover:shadow-lg transition-shadow border-l-4 border-l-amber-500">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Top Category (Monthly)</CardTitle>
+                                    <PieChartIcon className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold truncate">
+                                        {summary.topCategory ? summary.topCategory.category : "N/A"}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                        {summary.topCategory ? `$${summary.topCategory.total.toFixed(2)} spent` : "No data"}
+                                    </div>
+                                    {trends && (
+                                        <div className={`text-xs mt-2 font-medium ${trends.percentageChange > 0 ? 'text-destructive' : 'text-emerald-500'}`}>
+                                            {trends.percentageChange > 0 ? (
+                                                <>Spending {trends.percentageChange.toFixed(0)}% more than last month</>
+                                            ) : trends.percentageChange < 0 ? (
+                                                <>Spending {Math.abs(trends.percentageChange).toFixed(0)}% less than last month</>
+                                            ) : (
+                                                <>Same spending as last month</>
+                                            )}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </>
+                    )}
                 </div>
             )}
 

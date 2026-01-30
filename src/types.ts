@@ -14,6 +14,7 @@ export interface Expense {
     lineItems: LineItem[];
     currency: string;
     category: string;
+    category_id?: string;
     isRecurring?: boolean;
     recurringFrequency?: 'daily' | 'weekly' | 'monthly' | 'yearly';
 }
@@ -70,4 +71,37 @@ export interface MCPResult {
 
 export interface ErrorResult {
     error: string;
+}
+
+export interface Tag {
+    id: string;
+    user_id: string;
+    name: string;
+    color?: string | null;
+    created_at: number;
+}
+
+export interface Notification {
+    id: string;
+    user_id: string;
+    type: string;
+    title: string;
+    message: string;
+    is_read: number;
+    data?: string | null;
+    created_at: number;
+}
+
+export interface Budget {
+    id: string;
+    user_id: string;
+    category: string;
+    limit_amount: number;
+    currency: string;
+    period: 'monthly' | 'yearly';
+    year: number;
+    month: number;
+    alert_threshold?: number;
+    created_at: number;
+    updated_at: number;
 }

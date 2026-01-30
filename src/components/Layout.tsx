@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
 import { UserMenu } from "./UserMenu";
+import { NotificationBell } from "./NotificationBell";
 const Header: React.FC = () => {
   const activeLinkClass = "text-focal-blue-500";
   const inactiveLinkClass =
@@ -82,7 +83,7 @@ const Header: React.FC = () => {
                 <Github className="h-5 w-5" />
               </a>
             </Button>
-            {user?.role === "admin" && (
+            {(user?.role === "admin" || user?.role === "super_admin") && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -96,6 +97,7 @@ const Header: React.FC = () => {
               </Button>
             )}
             <ThemeToggle className="relative top-0 right-0" />
+            <NotificationBell />
             <UserMenu />
           </div>
         </div>

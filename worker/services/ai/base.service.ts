@@ -32,7 +32,7 @@ export abstract class BaseAIProvider {
      * @param base64Image - Base64 encoded image with data URI prefix (data:image/{type};base64,{data})
      * @returns Promise with structured expense data
      */
-    abstract processReceipt(base64Image: string): Promise<AIResponse>;
+    abstract processReceipt(base64Image: string, categories?: string[]): Promise<AIResponse>;
 
     /**
      * Get the current date in YYYY-MM-DD format for the prompt
@@ -59,13 +59,17 @@ export abstract class BaseAIProvider {
     /**
      * Get the system instruction for receipt processing
      */
-    protected getSystemInstruction(): string {
+    protected getSystemInstruction(categories: string[] = []): string {
         const currentDate = this.getCurrentDate();
+        const categoryList = categories.length > 0
+            ? categories.join(', ')
+            : 'Food & Drink, Groceries, Travel, Shopping, Utilities, Entertainment, Health & Fitness, Housing, Transportation, Education, Personal Care, Other';
+
         return `You are a receipt data extraction assistant. Extract the following information from receipt images:
 - merchant: Store/restaurant name
 - date: Transaction date in YYYY-MM-DD format
 - total: Total amount (number only, no currency symbols or codes)
-- category: One of: Food & Drink, Groceries, Travel, Shopping, Utilities, Other
+- category: One of: ${categoryList}
 - lineItems: Array of items with description, quantity, and price
 
 Important:
@@ -81,7 +85,7 @@ Important:
     protected isRateLimitError(error: any): boolean {
         const errorMessage = error?.message?.toLowerCase() || '';
         const errorString = String(error).toLowerCase();
-        
+
         return (
             errorMessage.includes('rate limit') ||
             errorMessage.includes('quota') ||
@@ -110,7 +114,7 @@ Important:
         for (let i = 0; i < apiKeys.length; i++) {
             const apiKey = apiKeys[i];
             const keyLabel = i === 0 ? 'primary' : `fallback ${i}`;
-            
+
             try {
                 console.log(`[${providerName}] Attempting with ${keyLabel} API key`);
                 const result = await operation(apiKey);
@@ -119,13 +123,13 @@ Important:
             } catch (error: any) {
                 console.error(`[${providerName}] Error with ${keyLabel} API key:`, error);
                 lastError = error;
-                
+
                 // If this is a rate limit error and we have more keys to try, continue
                 if (this.isRateLimitError(error) && i < apiKeys.length - 1) {
                     console.log(`[${providerName}] Rate limit detected, trying next API key...`);
                     continue;
                 }
-                
+
                 // If it's not a rate limit error, or we've exhausted all keys, break
                 if (!this.isRateLimitError(error)) {
                     console.log(`[${providerName}] Non-rate-limit error, not retrying`);

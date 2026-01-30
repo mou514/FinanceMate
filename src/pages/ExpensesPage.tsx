@@ -188,11 +188,11 @@ export const ExpensesPage: React.FC = () => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = async (query: string = "") => {
     setLoading(true);
     setError(null);
     try {
-      const response = await expenseService.getExpenses();
+      const response = await expenseService.getExpenses(query);
       if (response.success && response.data) {
         setExpenses(response.data);
       } else {
@@ -206,8 +206,12 @@ export const ExpensesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchExpenses();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      fetchExpenses(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
 
   const handleAudioComplete = async (blob: Blob) => {
     const results = await handleAudioProcessing(blob);
@@ -215,8 +219,7 @@ export const ExpensesPage: React.FC = () => {
       setExtractedReceipts(results);
       setIsReviewDialogOpen(true);
       toast.success(
-        `Extracted ${results.length} receipt${
-          results.length > 1 ? "s" : ""
+        `Extracted ${results.length} receipt${results.length > 1 ? "s" : ""
         } from audio`
       );
     }
@@ -268,13 +271,7 @@ export const ExpensesPage: React.FC = () => {
     }
 
     // Then apply search filter
-    if (!searchTerm) return base;
-    const q = searchTerm.toLowerCase();
-    return base.filter(
-      (expense) =>
-        expense.merchant.toLowerCase().includes(q) ||
-        expense.category.toLowerCase().includes(q)
-    );
+    return base;
   }, [expenses, searchTerm, selectedMonth, selectedYear]);
   const handleDelete = async (id: string) => {
     const response = await expenseService.deleteExpense(id);
@@ -649,9 +646,8 @@ export const ExpensesPage: React.FC = () => {
                             className="p-1 rounded hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                           >
                             <ChevronDown
-                              className={`h-4 w-4 transition-transform ${
-                                expanded[expense.id] ? "rotate-180" : "rotate-0"
-                              }`}
+                              className={`h-4 w-4 transition-transform ${expanded[expense.id] ? "rotate-180" : "rotate-0"
+                                }`}
                             />
                           </button>
                         </TableCell>
@@ -733,7 +729,7 @@ export const ExpensesPage: React.FC = () => {
                               >
                                 <div className="px-4 py-3">
                                   {expense.lineItems &&
-                                  expense.lineItems.length > 0 ? (
+                                    expense.lineItems.length > 0 ? (
                                     <div className="rounded-md border">
                                       <Table>
                                         <TableHeader>
@@ -812,9 +808,8 @@ export const ExpensesPage: React.FC = () => {
                     <div className="min-w-0 flex-1">
                       <CardTitle className="text-base sm:text-lg truncate flex items-center gap-2">
                         <ChevronDown
-                          className={`h-4 w-4 shrink-0 transition-transform ${
-                            expanded[expense.id] ? "rotate-180" : "rotate-0"
-                          }`}
+                          className={`h-4 w-4 shrink-0 transition-transform ${expanded[expense.id] ? "rotate-180" : "rotate-0"
+                            }`}
                         />
                         {expense.merchant}
                       </CardTitle>

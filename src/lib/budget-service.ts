@@ -8,6 +8,7 @@ export interface Budget {
     category: string;
     limit_amount: number;
     currency: string;
+    alert_threshold?: number;
     created_at: number;
     updated_at: number;
 }
@@ -37,13 +38,13 @@ class BudgetService {
         }
     }
 
-    async setBudget(category: string, limitAmount: number, currency: string): Promise<{ success: boolean; data?: Budget; error?: string }> {
+    async setBudget(category: string, limitAmount: number, currency: string, alertThreshold: number): Promise<{ success: boolean; data?: Budget; error?: string }> {
         try {
             const response = await fetch(`${API_BASE_URL}/budgets`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 credentials: 'include',
-                body: JSON.stringify({ category, limitAmount, currency }),
+                body: JSON.stringify({ category, limit_amount: limitAmount, currency, alert_threshold: alertThreshold }),
             });
             const result: APIResponse<Budget> = await response.json();
             return { success: result.success, data: result.data, error: result.error };
@@ -51,6 +52,7 @@ class BudgetService {
             return { success: false, error: error.message };
         }
     }
+
 }
 
 export const budgetService = new BudgetService();

@@ -75,6 +75,9 @@ export async function signup(c: Context<{ Bindings: Env }>) {
         emailVerified = true;
     }
 
+    // Log user signup
+    await dbService.addSystemLog('info', `New user registered: ${email}`, `User ID: ${userId}`);
+
     // Generate JWT token (but user must verify email to use protected routes)
     const token = authService.generateToken({
         userId: user.id,
@@ -136,12 +139,23 @@ export async function login(c: Context<{ Bindings: Env }>) {
     // Get user by email
     const user = await dbService.getUserByEmail(email);
     if (!user) {
+        // Log failed login attempt (unknown email)
+        await dbService.addSystemLog('warn', `Failed login attempt: ${email}`, 'User not found');
         return error('Invalid email or password', 401);
+    }
+
+    // Check if user is active (not banned)
+    if (user.is_active === 0) {
+        return error(user.ban_reason
+            ? `Your account has been suspended: ${user.ban_reason}`
+            : 'Your account has been suspended', 403);
     }
 
     // Verify password
     const isValidPassword = await authService.verifyPassword(password, user.password_hash);
     if (!isValidPassword) {
+        // Log failed login attempt
+        await dbService.addSystemLog('warn', `Failed login attempt: ${email}`, 'Invalid password');
         return error('Invalid email or password', 401);
     }
 
@@ -155,6 +169,9 @@ export async function login(c: Context<{ Bindings: Env }>) {
     const sessionId = crypto.randomUUID();
     const expiresAt = authService.getTokenExpiration();
     await dbService.createSession(sessionId, user.id, token, expiresAt);
+
+    // Log successful login
+    await dbService.addSystemLog('info', `User logged in: ${email}`, `User ID: ${user.id}`);
 
     // Set httpOnly cookie (use Secure only in production)
     const isDev = env.NODE_ENV === 'development';

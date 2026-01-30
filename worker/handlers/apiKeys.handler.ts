@@ -1,6 +1,7 @@
 import { Context } from 'hono';
 import { Env } from '../types';
 import { DBService } from '../services/db.service';
+import { generateApiKey } from '../utils/keys';
 import { success, error, json } from '../utils/response';
 
 type Variables = {
@@ -98,3 +99,59 @@ export async function updateAIProvider(c: Context<{ Bindings: Env; Variables: Va
         return error('Invalid request body', 400);
     }
 }
+
+/**
+ * POST /api/keys
+ * Generate a new API key
+ */
+export const generateKey = async (c: Context<{ Bindings: Env; Variables: Variables }>) => {
+    const db = new DBService(c.env.DB);
+    const userId = c.get('userId');
+    const { name } = await c.req.json<{ name: string }>();
+
+    if (!name) {
+        return c.json({ success: false, error: 'Key name is required' }, 400);
+    }
+
+    const { key, hash, prefix } = await generateApiKey();
+    const id = await db.createApiKey(userId, name, hash, prefix);
+
+    return c.json({
+        success: true,
+        data: {
+            id,
+            name,
+            prefix,
+            key // Returned only once!
+        }
+    });
+};
+
+/**
+ * GET /api/keys
+ * List all API keys
+ */
+export const listKeys = async (c: Context<{ Bindings: Env; Variables: Variables }>) => {
+    const db = new DBService(c.env.DB);
+    const userId = c.get('userId');
+    const keys = await db.listApiKeys(userId);
+
+    return c.json({
+        success: true,
+        data: keys
+    });
+};
+
+/**
+ * DELETE /api/keys/:id
+ * Revoke an API key
+ */
+export const revokeKey = async (c: Context<{ Bindings: Env; Variables: Variables }>) => {
+    const db = new DBService(c.env.DB);
+    const userId = c.get('userId');
+    const keyId = c.req.param('id');
+
+    await db.revokeApiKey(keyId, userId);
+
+    return c.json({ success: true });
+};

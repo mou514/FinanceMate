@@ -16,12 +16,17 @@ export class GeminiProvider extends BaseAIProvider {
         this.modelName = modelName;
     }
 
-    async processReceipt(base64Image: string): Promise<AIResponse> {
+    async processReceipt(base64Image: string, categories: string[] = []): Promise<AIResponse> {
         try {
             const expenseData = await this.executeWithFallback(
                 this.apiKeys,
                 async (apiKey) => {
                     const genAI = new GoogleGenerativeAI(apiKey);
+
+                    // Ensure we have categories for the schema description
+                    const categoryList = categories.length > 0
+                        ? categories.join(', ')
+                        : 'Food & Drink, Groceries, Travel, Shopping, Utilities, Entertainment, Health & Fitness, Housing, Transportation, Education, Personal Care, Other';
 
                     const model = genAI.getGenerativeModel({
                         model: this.modelName,
@@ -47,8 +52,10 @@ export class GeminiProvider extends BaseAIProvider {
                                     },
                                     category: {
                                         type: SchemaType.STRING,
-                                        description: 'Expense category (Food & Drink, Groceries, Travel, Shopping, Utilities, Other)',
+                                        format: 'enum',
+                                        description: `Expense category (${categoryList})`,
                                         nullable: false,
+                                        enum: categories.length > 0 ? categories : (undefined as any)
                                     },
                                     lineItems: {
                                         type: SchemaType.ARRAY,
@@ -85,7 +92,7 @@ export class GeminiProvider extends BaseAIProvider {
                     const { mimeType, imageData } = this.parseBase64Image(base64Image);
 
                     const result = await model.generateContent([
-                        this.getSystemInstruction(),
+                        this.getSystemInstruction(categories),
                         {
                             inlineData: {
                                 mimeType: `image/${mimeType}`,

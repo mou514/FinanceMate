@@ -25,7 +25,7 @@ export class GroqProvider extends BaseAIProvider {
         this.modelName = modelName;
     }
 
-    async processReceipt(base64Image: string): Promise<AIResponse> {
+    async processReceipt(base64Image: string, categories: string[] = []): Promise<AIResponse> {
         try {
             console.log('[Groq Provider] Starting receipt processing...');
             console.log('[Groq Provider] Azure endpoint:', this.azureEndpoint);
@@ -69,7 +69,7 @@ export class GroqProvider extends BaseAIProvider {
     private async structureWithGroq(ocrText: string): Promise<AIResponse> {
         try {
             const currentDate = this.getCurrentDate();
-            
+
             const systemPrompt = `You are an expert AI data extraction assistant.
 
 Your task is to analyze the provided OCR text from a receipt and extract the specified information.

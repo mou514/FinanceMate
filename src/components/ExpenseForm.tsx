@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Trash2, Plus, ScanLine } from "lucide-react";
 import type { ExpenseData } from "@/lib/expense-service";
-import { EXPENSE_CATEGORIES } from "@/constants";
+import { useCategories } from "@/hooks/useCategories";
 interface ExpenseFormProps {
   value: ExpenseData;
   onChange: (data: ExpenseData) => void;
@@ -28,6 +28,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     valueRef.current = value;
     onChangeRef.current = onChange;
   }, [value, onChange]);
+
+  // Use custom categories hook
+  const { categories } = useCategories();
 
   const handleFieldChange = useCallback(
     (field: keyof ExpenseData, fieldValue: any) => {
@@ -116,7 +119,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
-              {EXPENSE_CATEGORIES?.map((category) => (
+              {categories?.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
                 </SelectItem>

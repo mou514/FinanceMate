@@ -59,6 +59,7 @@ export const byUserId: IdentifierFn = async (c: Context<{ Bindings: Env; Variabl
 /**
  * Identifier function for public routes that use an email address.
  * Extracts the email from the JSON request body.
+ * WARNING: This consumes the request body, so ensure downstream handlers handle this (e.g. use c.req.json() again)
  */
 export const byEmail: IdentifierFn = async (c: Context<{ Bindings: Env; Variables: Variables }>) => {
     try {
@@ -67,4 +68,12 @@ export const byEmail: IdentifierFn = async (c: Context<{ Bindings: Env; Variable
     } catch (e) {
         return null; // Ignore if body is not valid JSON
     }
+};
+
+/**
+ * Identifier function using IP address.
+ * Check for Cloudflare header first, then fallback to standard headers.
+ */
+export const byIP: IdentifierFn = async (c: Context<{ Bindings: Env; Variables: Variables }>) => {
+    return c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown-ip';
 };

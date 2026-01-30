@@ -43,9 +43,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return headers;
   }, []);
 
+  // Helper request with timeout
+  const fetchWithTimeout = async (url: string, options: RequestInit = {}) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(id);
+      return response;
+    } catch (error) {
+      clearTimeout(id);
+      throw error;
+    }
+  };
+
   const checkAuth = useCallback(async () => {
     try {
-      const response = await fetch("/api/auth/me", {
+      const response = await fetchWithTimeout("/api/auth/me", {
         headers: getAuthHeaders(),
         credentials: "include",
       });
@@ -77,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetchWithTimeout("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -99,13 +117,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: data.error || "Login failed" };
       }
     } catch (error: any) {
-      return { success: false, error: error.message || "Login failed" };
+      return { success: false, error: error.name === 'AbortError' ? 'Request timed out' : (error.message || "Login failed") };
     }
   }, []);
 
   const signup = useCallback(async (email: string, password: string) => {
     try {
-      const response = await fetch("/api/auth/signup", {
+      const response = await fetchWithTimeout("/api/auth/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -127,13 +145,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: data.error || "Signup failed" };
       }
     } catch (error: any) {
-      return { success: false, error: error.message || "Signup failed" };
+      return { success: false, error: error.name === 'AbortError' ? 'Request timed out' : (error.message || "Signup failed") };
     }
   }, []);
 
   const forgotPassword = useCallback(async (email: string) => {
     try {
-      const response = await fetch("/api/auth/forgot-password", {
+      const response = await fetchWithTimeout("/api/auth/forgot-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

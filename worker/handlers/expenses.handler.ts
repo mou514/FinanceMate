@@ -17,9 +17,10 @@ type Variables = {
 export async function getExpenses(c: Context<{ Bindings: Env; Variables: Variables }>) {
     const env = c.env;
     const userId = c.get('userId');
+    const query = c.req.query('q');
     const dbService = new DBService(env.DB);
 
-    const expenses = await dbService.getExpensesByUserId(userId);
+    const expenses = await dbService.getExpensesByUserId(userId, query);
 
     // Fetch line items for each expense
     const expensesWithLineItems = await Promise.all(

@@ -42,7 +42,7 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {user.role === "admin" && (
+        {(user.role === "admin" || user.role === "super_admin") && (
           <>
             <DropdownMenuItem onClick={() => navigate("/admin")}>
               <LayoutDashboard className="mr-2 h-4 w-4" />

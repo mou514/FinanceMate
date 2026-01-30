@@ -245,7 +245,12 @@ export const HomePage: React.FC = () => {
               onClick={() => {
                 if (!isProcessing && !isSaving) {
                   setError(null);
-                  setIsCameraOpen(true);
+                  // On mobile, use file input with camera capture instead of webcam modal
+                  if (isMobile) {
+                    fileInputRef.current?.click();
+                  } else {
+                    setIsCameraOpen(true);
+                  }
                 }
               }}
               disabled={isProcessing || isSaving}

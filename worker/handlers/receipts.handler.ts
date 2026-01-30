@@ -79,13 +79,38 @@ export async function processReceipt(c: Context<{ Bindings: Env; Variables: Vari
         console.log('[Receipt Handler] Creating provider instance...');
         console.log('[Receipt Handler] API keys available:', apiKeys.length);
 
+        // Fetch user's custom categories
+        const customCategories = await dbService.getCustomCategories(userId);
+        const customCategoryNames = customCategories.map(c => c.name);
+
+        // Merge with defaults
+        const { DEFAULT_CATEGORIES } = await import('../constants');
+        const allCategories = [...DEFAULT_CATEGORIES, ...customCategoryNames];
+
+        // Remove duplicates just in case
+        const uniqueCategories = [...new Set(allCategories)];
+
+        console.log(`[Receipt Handler] Using ${uniqueCategories.length} categories (${customCategoryNames.length} custom)`);
+
         // Create AI provider instance (pass env for Groq provider Azure credentials)
         const aiProvider = AIProviderFactory.createProvider(providerType, apiKeys, modelName, env);
 
         console.log('[Receipt Handler] Processing receipt with', providerType);
 
         // Process the receipt
-        const result = await aiProvider.processReceipt(image);
+        const startTime = Date.now();
+        const result = await aiProvider.processReceipt(image, uniqueCategories);
+        const durationMs = Date.now() - startTime;
+
+        // Log to DB
+        await dbService.logAIProcessing(
+            userId,
+            providerType,
+            modelName || 'default',
+            durationMs,
+            result.success,
+            result.error
+        );
 
         if (!result.success) {
             return error(result.error || 'Failed to process receipt', 500);
@@ -107,6 +132,15 @@ export async function processReceipt(c: Context<{ Bindings: Env; Variables: Vari
         return json(success(expenseData));
     } catch (err: any) {
         console.error('Receipt processing error:', err);
+        // Log error
+        await dbService.logAIProcessing(
+            userId,
+            providerType,
+            modelName || 'default',
+            0, // Duration might be inaccurate here, but 0 is safe
+            false,
+            err.message
+        );
         return error(err.message || 'Failed to process receipt', 500);
     }
 }

@@ -17,7 +17,7 @@ export class NvidiaProvider extends BaseAIProvider {
         this.invokeUrl = 'https://integrate.api.nvidia.com/v1/chat/completions';
     }
 
-    async processReceipt(base64Image: string): Promise<AIResponse> {
+    async processReceipt(base64Image: string, categories: string[] = []): Promise<AIResponse> {
         try {
             const { imageData, mimeType } = this.parseBase64Image(base64Image);
 
