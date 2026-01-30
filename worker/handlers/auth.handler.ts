@@ -186,13 +186,17 @@ export async function login(c: Context<{ Bindings: Env }>) {
 
     c.header('Set-Cookie', cookieValue);
 
+    // Check if user is super admin based on email
+    const isSuperAdmin = env.SUPER_ADMIN_EMAIL && user.email === env.SUPER_ADMIN_EMAIL;
+    const userRole = isSuperAdmin ? 'super_admin' : (user.role || 'user');
+
     return json(
         success({
             user: {
                 id: user.id,
                 email: user.email,
                 emailVerified: user.email_verified === 1,
-                role: user.role,
+                role: userRole,
             },
             token,
         })
@@ -235,12 +239,16 @@ export async function me(c: Context<{ Bindings: Env; Variables: Variables }>) {
         return error('User not found', 404);
     }
 
+    // Check if user is super admin based on email
+    const isSuperAdmin = env.SUPER_ADMIN_EMAIL && user.email === env.SUPER_ADMIN_EMAIL;
+    const userRole = isSuperAdmin ? 'super_admin' : (user.role || 'user');
+
     return json(
         success({
             id: user.id,
             email: user.email,
             emailVerified: user.email_verified === 1,
-            role: user.role,
+            role: userRole,
             created_at: user.created_at,
         })
     );
