@@ -7,6 +7,7 @@ type Variables = {
     userId: string;
     userEmail: string;
     token: string;
+    userRole?: string;
 };
 
 /**
@@ -21,22 +22,23 @@ export async function authMiddleware(c: Context<{ Bindings: Env; Variables: Vari
     // Get token from Authorization header or cookie
     let token: string | null = null;
 
-    // Try Authorization header first
-    const authHeader = c.req.header('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7);
+    // Check for explicit API Key header
+    const apiKeyHeader = c.req.header('X-API-Key');
+    if (apiKeyHeader) {
+        token = apiKeyHeader;
+    }
+
+    // Try Authorization header
+    if (!token) {
+        const authHeader = c.req.header('Authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.substring(7);
+        }
     }
 
     // Fall back to cookie
     if (!token) {
         const cookieHeader = c.req.header('Cookie');
-
-        // Debug logging in development
-        if (env.NODE_ENV === 'development') {
-            console.log('[Auth Debug] Cookie header:', cookieHeader);
-            console.log('[Auth Debug] All headers:', Object.fromEntries(c.req.raw.headers.entries()));
-        }
-
         if (cookieHeader) {
             const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
                 const [key, value] = cookie.trim().split('=');
@@ -44,11 +46,6 @@ export async function authMiddleware(c: Context<{ Bindings: Env; Variables: Vari
                 return acc;
             }, {} as Record<string, string>);
             token = cookies['auth_token'];
-
-            if (env.NODE_ENV === 'development') {
-                console.log('[Auth Debug] Parsed cookies:', cookies);
-                console.log('[Auth Debug] Token found:', !!token);
-            }
         }
     }
 
@@ -56,7 +53,37 @@ export async function authMiddleware(c: Context<{ Bindings: Env; Variables: Vari
         return c.json({ success: false, error: 'Unauthorized - No token provided' }, 401);
     }
 
-    // Verify token
+    // Check if it's an API Key (starts with focal_)
+    if (token.startsWith('focal_')) {
+        const { hashApiKey } = await import('../utils/keys');
+        const hash = await hashApiKey(token);
+        const apiKey = await dbService.getApiKeyByHash(hash);
+
+        if (!apiKey) {
+            return c.json({ success: false, error: 'Unauthorized - Invalid API Key' }, 401);
+        }
+
+        // Attach user info
+        const user = await dbService.getUserById(apiKey.user_id);
+        if (!user) {
+            return c.json({ success: false, error: 'Unauthorized - User not found' }, 401);
+        }
+
+        c.set('userId', user.id);
+        c.set('userEmail', user.email);
+        c.set('token', token);
+        if (user.role) {
+            c.set('userRole', user.role);
+        }
+
+        // Update last used asynchronously
+        c.executionCtx.waitUntil(dbService.touchApiKey(apiKey.id));
+
+        await next();
+        return;
+    }
+
+    // Verify JWT token
     const payload = authService.verifyToken(token);
     if (!payload) {
         return c.json({ success: false, error: 'Unauthorized - Invalid token' }, 401);
@@ -77,6 +104,14 @@ export async function authMiddleware(c: Context<{ Bindings: Env; Variables: Vari
     const user = await dbService.getUserById(payload.userId);
     if (!user) {
         return c.json({ success: false, error: 'Unauthorized - User not found' }, 401);
+    }
+
+    // Check if user is banned
+    if (user.is_active === 0) {
+        // Invalidate session to prevent further checks
+        await dbService.deleteSession(token);
+        const reason = user.ban_reason ? `: ${user.ban_reason}` : '';
+        return c.json({ success: false, error: `Unauthorized - Account has been suspended${reason}` }, 403);
     }
 
     // Check email verification status
@@ -107,6 +142,14 @@ export async function authMiddleware(c: Context<{ Bindings: Env; Variables: Vari
     c.set('userId', payload.userId);
     c.set('userEmail', payload.email);
     c.set('token', token);
+
+    // Attach role if available
+    if (user && user.role) {
+        c.set('userRole', user.role);
+    }
+
+    // Update last active timestamp asynchronously
+    c.executionCtx.waitUntil(dbService.updateUserLastActive(payload.userId));
 
     await next();
 }

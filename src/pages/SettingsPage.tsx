@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from "react";
+import { FileDown, Loader, Save, Info } from "lucide-react";
+import { expenseService } from "@/lib/expense-service";
+import { BudgetSettings } from "@/components/BudgetSettings";
+import { ApiKeysManager } from "@/components/ApiKeysManager";
+import { CategoryManager } from "@/components/CategoryManager";
+import { TagsManager } from "@/components/TagsManager";
+import { useUserSettings, AIProvider } from "@/hooks/useUserSettings";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { Save, Loader, Info } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -11,14 +16,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useUserSettings, AIProvider } from "@/hooks/useUserSettings";
+import { toast } from "sonner";
 
 const CURRENCIES = ["CAD", "EGP", "EUR", "GBP", "JPY", "SAR", "USD"];
-const AI_PROVIDERS = [
+const AI_PROVIDERS: { value: AIProvider; label: string }[] = [
   { value: "gemini", label: "Google Gemini" },
-  { value: "openai", label: "OpenAI GPT-4o" },
-  { value: "nvidia", label: "Nvidia NIM (Experimental)" },
-  { value: "groq", label: "Groq (OCR + LLM)" },
+  { value: "openai", label: "OpenAI" },
+  { value: "nvidia", label: "NVIDIA" },
+  { value: "groq", label: "Groq" },
 ];
 
 export const SettingsPage: React.FC = () => {
@@ -33,6 +38,7 @@ export const SettingsPage: React.FC = () => {
   // Local state for form editing
   const [currency, setCurrency] = useState(defaultCurrency);
   const [aiProvider, setAiProvider] = useState<AIProvider>(savedAiProvider);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Sync local state when settings are loaded
   useEffect(() => {
@@ -52,6 +58,75 @@ export const SettingsPage: React.FC = () => {
       });
     } else {
       toast.error("Failed to save settings. Please try again.");
+    }
+  };
+
+  const handleExport = async (format: "csv" | "json") => {
+    setIsExporting(true);
+    try {
+      const response = await expenseService.getExpenses();
+      if (response.success && response.data) {
+        const data = response.data;
+        let blob: Blob;
+        let filename: string;
+
+        if (format === "json") {
+          const jsonString = JSON.stringify(data, null, 2);
+          blob = new Blob([jsonString], { type: "application/json" });
+          filename = `financemate-expenses-${new Date().toISOString().split("T")[0]}.json`;
+        } else {
+          // Convert to CSV
+          const headers = [
+            "Date",
+            "Merchant",
+            "Total",
+            "Currency",
+            "Category",
+            "Description",
+          ];
+          const csvRows = [headers.join(",")];
+
+          for (const expense of data) {
+            const row = [
+              expense.date,
+              `"${expense.merchant}"`,
+              expense.total,
+              expense.currency,
+              `"${expense.category}"`,
+              // Combine line items or just use a summary
+              `"${expense.lineItems.map((i) => i.description).join("; ")}"`,
+            ];
+            csvRows.push(row.join(","));
+          }
+
+          blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
+          filename = `financemate-expenses-${new Date().toISOString().split("T")[0]}.csv`;
+        }
+
+        // Trigger download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast.success("Export Successful", {
+          description: `Your ${format.toUpperCase()} file has been downloaded.`,
+        });
+      } else {
+        toast.error("Export Failed", {
+          description: response.error || "Could not retrieve data.",
+        });
+      }
+    } catch (e) {
+      toast.error("Export Error", {
+        description: "An unexpected error occurred.",
+      });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -132,6 +207,64 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+
+          <div className="pt-6 border-t">
+            <h2 className="text-lg font-medium mb-4">Data Management</h2>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Export Data</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Download a copy of your expense data.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleExport("csv")}
+                    disabled={isExporting}
+                  >
+                    {isExporting ? (
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileDown className="mr-2 h-4 w-4" />
+                    )}
+                    CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleExport("json")}
+                    disabled={isExporting}
+                  >
+                    {isExporting ? (
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileDown className="mr-2 h-4 w-4" />
+                    )}
+                    JSON
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t">
+            <ApiKeysManager />
+          </div>
+
+          <div className="pt-6 border-t">
+            <CategoryManager />
+          </div>
+
+          <div className="pt-6 border-t">
+            <TagsManager />
+          </div>
+
+          <div className="pt-6 border-t">
+            <BudgetSettings />
+          </div>
+
           <footer className="flex justify-end pt-4">
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving ? (
@@ -144,6 +277,7 @@ export const SettingsPage: React.FC = () => {
           </footer>
         </div>
       )}
+
     </div>
   );
 };

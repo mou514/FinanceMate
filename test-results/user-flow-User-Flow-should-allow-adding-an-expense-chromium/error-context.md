@@ -1,0 +1,48 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7] [cursor=pointer]:
+        - img "Focal" [ref=e8]
+        - generic [ref=e9]: Focal Finance
+      - generic [ref=e10]:
+        - link "Features" [ref=e11] [cursor=pointer]:
+          - /url: /#features
+        - link "How It Works" [ref=e12] [cursor=pointer]:
+          - /url: /#how-it-works
+        - link "Security" [ref=e13] [cursor=pointer]:
+          - /url: /#security
+      - generic [ref=e14]:
+        - link "View on GitHub" [ref=e15] [cursor=pointer]:
+          - /url: https://github.com/Creative-Geek/Focal
+          - img
+        - button "Toggle theme" [ref=e16] [cursor=pointer]:
+          - img
+          - generic [ref=e17]: Toggle theme
+        - button "Sign In" [ref=e18] [cursor=pointer]
+  - main [ref=e19]:
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - heading "Welcome back" [level=1] [ref=e23]
+        - paragraph [ref=e24]: Enter your credentials to access your account
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - text: Email
+          - textbox "Email" [ref=e27]:
+            - /placeholder: you@example.com
+            - text: test@example.com
+        - generic [ref=e28]:
+          - generic [ref=e29]:
+            - generic [ref=e30]: Password
+            - link "Forgot password?" [ref=e31] [cursor=pointer]:
+              - /url: /forgot-password
+          - textbox "Password" [active] [ref=e32]:
+            - /placeholder: ••••••••
+            - text: password123
+        - button "Sign in" [ref=e34] [cursor=pointer]
+      - generic [ref=e35]:
+        - text: Don't have an account?
+        - button "Sign up" [ref=e36] [cursor=pointer]
+```

@@ -226,7 +226,7 @@ export function LandingPage() {
                 >
                   Master Your Finances with{" "}
                   <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-                    Focal Finance
+                    FinanceMate
                   </span>
                 </h1>
 
@@ -310,7 +310,7 @@ export function LandingPage() {
                 >
                   Master Your Finances with{" "}
                   <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-                    Focal
+                    FinanceMate
                   </span>
                 </h1>
 
@@ -435,9 +435,8 @@ export function LandingPage() {
                 key={index}
                 className="text-card-foreground flex flex-col gap-6 rounded-xl border shadow-sm relative overflow-hidden border-border bg-landing-card p-8 text-center"
                 style={{
-                  animation: `fadeInUp 0.6s ease-out ${
-                    0.1 * (index + 1)
-                  }s both`,
+                  animation: `fadeInUp 0.6s ease-out ${0.1 * (index + 1)
+                    }s both`,
                 }}
               >
                 <div className="mb-4 text-6xl font-bold text-primary/10">
@@ -542,7 +541,7 @@ export function LandingPage() {
               Ready to Take Control of Your Finances?
             </h2>
             <p className="mb-10 text-lg text-muted-foreground">
-              Join users worldwide who trust Focal for secure, private expense
+              Join users worldwide who trust FinanceMate for secure, private expense
               tracking with AI-powered receipt scanning. Free, open-source, and
               works offline.
             </p>
@@ -595,13 +594,13 @@ export function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <div className="flex items-center gap-2">
-              <img src="/focal-icon.svg" alt="Focal" className="h-10 w-10" />
-              <span className="text-xl font-bold text-foreground">Focal</span>
+              <img src="/financemate-icon.png" alt="FinanceMate" className="h-10 w-10 rounded-lg" />
+              <span className="text-xl font-bold text-foreground">FinanceMate</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2025 Focal. All rights reserved.
+              © 2025 FinanceMate. All rights reserved.
               <br />
-              <span className="mt-2 block">Built with ❤️ by Creative Geek</span>
+              <span className="mt-2 block">Track smarter, spend better</span>
             </p>
           </div>
         </div>

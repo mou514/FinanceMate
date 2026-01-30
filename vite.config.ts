@@ -88,7 +88,7 @@ export default ({ mode }: { mode: string }) => {
       watchDependenciesPlugin(),
       VitePWA({
         registerType: "autoUpdate",
-        manifestFilename: "site.webmanifest",
+        manifestFilename: "manifest.webmanifest",
         includeAssets: [
           // include favicon or other static assets if needed
           "focal-icon.svg",
@@ -98,9 +98,9 @@ export default ({ mode }: { mode: string }) => {
           maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         },
         manifest: {
-          name: "Focal: AI Receipt Scanner",
-          short_name: "Focal",
-          description: "Scan receipts with AI and track expenses.",
+          name: "FinanceMate: AI Expense Tracker",
+          short_name: "FinanceMate",
+          description: "Track your spending with AI-powered receipt scanning.",
           theme_color: "#111827",
           background_color: "#111827",
           display: "standalone",

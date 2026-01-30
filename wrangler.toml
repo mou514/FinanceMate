@@ -1,4 +1,4 @@
-name = "focal-expensi"
+name = "financemate"
 main = "worker/index.ts"
 compatibility_date = "2025-10-04"
 compatibility_flags = ["nodejs_compat"]
@@ -19,6 +19,7 @@ database_id = "2c3d6a69-e2ca-4a94-98a0-0def7b7bf404"
 [vars]
 NODE_ENV = "production"
 AI_PROVIDER = "gemini"  # Options: 'gemini' | 'openai' | 'nvidia' | 'groq'
+SUPER_ADMIN_EMAIL = "admin@admin.com"
 
 # Production secrets (set using wrangler secret put):
 # JWT_SECRET - Secret key for JWT token signing

@@ -52,6 +52,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 import { CurrencyBanner } from "@/components/CurrencyBanner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BudgetOverview } from "@/components/BudgetOverview";
 const videoConstraints = {
   width: 1280,
   height: 720,
@@ -113,7 +114,50 @@ export const HomePage: React.FC = () => {
         handleImageProcessing(imageSrc);
       }
     }
-  }, [webcamRef, isProcessing]);
+  }, [webcamRef, isProcessing, handleImageProcessing]);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      const file = e.dataTransfer.files?.[0];
+      if (file && file.type.startsWith("image/") && !isProcessing && !isSaving) {
+        // Reset error state
+        setError(null);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64Image = e.target?.result as string;
+          if (base64Image) {
+            handleImageProcessing(base64Image);
+          }
+        };
+        reader.onerror = () => {
+          toast.error("Upload Error", {
+            description: "Failed to read the image file.",
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+    [isProcessing, isSaving, handleImageProcessing, setError]
+  );
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && !isProcessing) {
@@ -138,9 +182,36 @@ export const HomePage: React.FC = () => {
   return (
     <>
       <Toaster richColors position="top-center" />
-      <div className="relative flex-grow flex flex-col items-center justify-center bg-background text-foreground px-3 sm:px-4 py-8 overflow-hidden w-full">
+      <div
+        className="relative flex-grow flex flex-col items-center justify-center bg-background text-foreground px-3 sm:px-4 py-8 overflow-hidden w-full transition-colors duration-200"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem] dark:bg-neutral-950 dark:bg-[linear-gradient(to_right,#1f1f1f_1px,transparent_1px),linear-gradient(to_bottom,#1f1f1f_1px,transparent_1px)]"></div>
         <div className="absolute inset-0 bg-hero-gradient -z-10" />
+
+        {/* Drag and Drop Overlay */}
+        <AnimatePresence>
+          {isDragging && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 bg-focal-blue-500/10 backdrop-blur-sm border-4 border-dashed border-focal-blue-500 rounded-xl flex items-center justify-center m-4 pointer-events-none"
+            >
+              <div className="bg-background/90 p-8 rounded-2xl shadow-xl flex flex-col items-center gap-4">
+                <div className="p-4 bg-focal-blue-100 dark:bg-focal-blue-900/30 rounded-full">
+                  <Upload className="h-10 w-10 text-focal-blue-600 dark:text-focal-blue-400" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold text-foreground">Drop receipt here</h3>
+                  <p className="text-muted-foreground">Release to upload and scan instantly</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Email Verification Banner */}
         {user && user.emailVerified === false && (
@@ -155,12 +226,18 @@ export const HomePage: React.FC = () => {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="text-center space-y-4 sm:space-y-6 z-10 w-full max-w-4xl"
         >
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl xl:text-7xl font-display font-bold text-balance leading-tight px-2">
-            Scan, Review, Done.
-          </h1>
+          {/* Personalized Greeting */}
+          <div className="space-y-2">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground">
+              {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {user?.email?.split('@')[0] || "there"}!
+            </h2>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-display font-bold text-balance leading-tight px-2">
+              Track Your Spending with Ease
+            </h1>
+          </div>
           <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto text-pretty px-2 sm:px-4">
-            Instantly capture, analyze, and organize your expenses with a single
-            photo. The fastest way to track your spending.
+            Instantly capture and organize your expenses with AI-powered receipt scanning.
+            FinanceMate makes expense tracking effortless.
           </p>
 
           {/* Currency Banner */}
@@ -174,7 +251,12 @@ export const HomePage: React.FC = () => {
               onClick={() => {
                 if (!isProcessing && !isSaving) {
                   setError(null);
-                  setIsCameraOpen(true);
+                  // On mobile, use file input with camera capture instead of webcam modal
+                  if (isMobile) {
+                    fileInputRef.current?.click();
+                  } else {
+                    setIsCameraOpen(true);
+                  }
                 }
               }}
               disabled={isProcessing || isSaving}
@@ -254,6 +336,9 @@ export const HomePage: React.FC = () => {
               className="hidden"
             />
           </div>
+
+          <BudgetOverview />
+
         </motion.div>
         {error && (
           <motion.div

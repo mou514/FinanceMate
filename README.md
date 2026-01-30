@@ -1,13 +1,12 @@
 <div align="center">
-  <img src="public/focal-icon.svg" alt="Focal Logo" width="120" height="120" />
+  <img src="public/financemate-icon.png" alt="FinanceMate Logo" width="120" height="120" />
   
-  # Focal Finance Tracker
+  # FinanceMate
 
 A modern, privacy-focused expense tracking Progressive Web App (PWA) with AI-powered receipt scanning.
 
 ![Dashboard](images/dashboard.png)
 
-[![Live Demo](https://img.shields.io/badge/demo-live-success)](https://focal.creative-geek.tech)
 [![License](https://img.shields.io/badge/license-MIT-blue)]()
 
 </div>
@@ -34,8 +33,8 @@ A modern, privacy-focused expense tracking Progressive Web App (PWA) with AI-pow
 
 ```bash
 # Clone repository
-git clone https://github.com/Creative-Geek/Focal.git
-cd Focal
+git clone https://github.com/yourusername/FinanceMate.git
+cd FinanceMate
 
 # Install dependencies
 pnpm install
@@ -101,8 +100,8 @@ Built with [React](https://react.dev), [Cloudflare](https://cloudflare.com), [sh
 
 <div align="center">
 
-**[Live Demo](https://focal.creative-geek.tech)** • **[Documentation](docs/DEVELOPMENT.md)** • **[Report Bug](https://github.com/Creative-Geek/Focal/issues)**
+**[Documentation](docs/DEVELOPMENT.md)** • **[Report Bug](https://github.com/yourusername/FinanceMate/issues)**
 
-Made with ❤️ by Creative Geek
+Track smarter, spend better 💙
 
 </div>

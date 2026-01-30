@@ -17,9 +17,10 @@ type Variables = {
 export async function getExpenses(c: Context<{ Bindings: Env; Variables: Variables }>) {
     const env = c.env;
     const userId = c.get('userId');
+    const query = c.req.query('q');
     const dbService = new DBService(env.DB);
 
-    const expenses = await dbService.getExpensesByUserId(userId);
+    const expenses = await dbService.getExpensesByUserId(userId, query);
 
     // Fetch line items for each expense
     const expensesWithLineItems = await Promise.all(
@@ -75,7 +76,7 @@ export async function createExpense(c: Context<{ Bindings: Env; Variables: Varia
         return error(validation.error, 400);
     }
 
-    const { merchant, date, total, currency, category, lineItems } = validation.data;
+    const { merchant, date, total, currency, category, lineItems, isRecurring, recurringFrequency } = validation.data;
 
     // Create expense
     const expenseId = crypto.randomUUID();
@@ -91,6 +92,21 @@ export async function createExpense(c: Context<{ Bindings: Env; Variables: Varia
         },
         lineItems
     );
+
+    // Handle recurring expense
+    if (isRecurring && recurringFrequency) {
+        await dbService.createRecurringExpense(
+            userId,
+            {
+                merchant,
+                date,
+                total,
+                currency,
+                category,
+            },
+            recurringFrequency
+        );
+    }
 
     // Fetch line items
     const fetchedLineItems = await dbService.getLineItemsByExpenseId(expense.id);

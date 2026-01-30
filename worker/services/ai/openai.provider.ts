@@ -16,7 +16,7 @@ export class OpenAIProvider extends BaseAIProvider {
         this.modelName = modelName;
     }
 
-    async processReceipt(base64Image: string): Promise<AIResponse> {
+    async processReceipt(base64Image: string, categories: string[] = []): Promise<AIResponse> {
         try {
             const { imageData, mimeType } = this.parseBase64Image(base64Image);
 

@@ -43,13 +43,15 @@ export async function signup(c: Context<{ Bindings: Env }>) {
     const userId = crypto.randomUUID();
     const user = await dbService.createUser(userId, email, passwordHash);
 
-    // Generate verification token (24 hour expiry)
-    const verificationToken = authService.generateVerificationToken();
-    const verificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-    await dbService.setVerificationToken(userId, verificationToken, verificationExpires);
-
-    // Send verification email via Brevo
+    // Handle email verification
+    let emailVerified = false;
     if (env.BREVO_API_KEY) {
+        // Generate verification token (24 hour expiry)
+        const verificationToken = authService.generateVerificationToken();
+        const verificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+        await dbService.setVerificationToken(userId, verificationToken, verificationExpires);
+
+        // Send verification email via Brevo
         const brevoService = new BrevoService(env.BREVO_API_KEY);
         const appUrl = env.APP_URL || 'http://localhost:3000';
 
@@ -67,8 +69,14 @@ export async function signup(c: Context<{ Bindings: Env }>) {
             console.log('[Signup] Verification email sent:', emailResult.messageId);
         }
     } else {
-        console.warn('[Signup] BREVO_API_KEY not configured - email verification disabled');
+        // Auto-verify email when BREVO_API_KEY is not configured
+        console.warn('[Signup] BREVO_API_KEY not configured - auto-verifying email');
+        await dbService.verifyEmailDirectly(userId);
+        emailVerified = true;
     }
+
+    // Log user signup
+    await dbService.addSystemLog('info', `New user registered: ${email}`, `User ID: ${userId}`);
 
     // Generate JWT token (but user must verify email to use protected routes)
     const token = authService.generateToken({
@@ -99,10 +107,13 @@ export async function signup(c: Context<{ Bindings: Env }>) {
             user: {
                 id: user.id,
                 email: user.email,
-                emailVerified: false,
+                emailVerified: emailVerified,
+                role: 'user', // Default role
             },
             token,
-            message: 'Account created. Please check your email to verify your account.',
+            message: emailVerified
+                ? 'Account created successfully! You can now use all features.'
+                : 'Account created. Please check your email to verify your account.',
         }),
         201
     );
@@ -128,12 +139,23 @@ export async function login(c: Context<{ Bindings: Env }>) {
     // Get user by email
     const user = await dbService.getUserByEmail(email);
     if (!user) {
+        // Log failed login attempt (unknown email)
+        await dbService.addSystemLog('warn', `Failed login attempt: ${email}`, 'User not found');
         return error('Invalid email or password', 401);
+    }
+
+    // Check if user is active (not banned)
+    if (user.is_active === 0) {
+        return error(user.ban_reason
+            ? `Your account has been suspended: ${user.ban_reason}`
+            : 'Your account has been suspended', 403);
     }
 
     // Verify password
     const isValidPassword = await authService.verifyPassword(password, user.password_hash);
     if (!isValidPassword) {
+        // Log failed login attempt
+        await dbService.addSystemLog('warn', `Failed login attempt: ${email}`, 'Invalid password');
         return error('Invalid email or password', 401);
     }
 
@@ -147,6 +169,9 @@ export async function login(c: Context<{ Bindings: Env }>) {
     const sessionId = crypto.randomUUID();
     const expiresAt = authService.getTokenExpiration();
     await dbService.createSession(sessionId, user.id, token, expiresAt);
+
+    // Log successful login
+    await dbService.addSystemLog('info', `User logged in: ${email}`, `User ID: ${user.id}`);
 
     // Set httpOnly cookie (use Secure only in production)
     const isDev = env.NODE_ENV === 'development';
@@ -167,6 +192,7 @@ export async function login(c: Context<{ Bindings: Env }>) {
                 id: user.id,
                 email: user.email,
                 emailVerified: user.email_verified === 1,
+                role: user.role,
             },
             token,
         })
@@ -214,6 +240,7 @@ export async function me(c: Context<{ Bindings: Env; Variables: Variables }>) {
             id: user.id,
             email: user.email,
             emailVerified: user.email_verified === 1,
+            role: user.role,
             created_at: user.created_at,
         })
     );

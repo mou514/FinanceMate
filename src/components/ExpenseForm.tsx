@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Trash2, Plus, ScanLine } from "lucide-react";
 import type { ExpenseData } from "@/lib/expense-service";
+import { useCategories } from "@/hooks/useCategories";
 interface ExpenseFormProps {
   value: ExpenseData;
   onChange: (data: ExpenseData) => void;
@@ -28,6 +29,9 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     onChangeRef.current = onChange;
   }, [value, onChange]);
 
+  // Use custom categories hook
+  const { categories } = useCategories();
+
   const handleFieldChange = useCallback(
     (field: keyof ExpenseData, fieldValue: any) => {
       onChangeRef.current({ ...valueRef.current, [field]: fieldValue });
@@ -43,7 +47,17 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     ) => {
       const newLineItems = [...valueRef.current.lineItems];
       newLineItems[index] = { ...newLineItems[index], [field]: fieldValue };
-      onChangeRef.current({ ...valueRef.current, lineItems: newLineItems });
+
+      // Auto-calculate total from line items
+      const calculatedTotal = newLineItems.reduce((sum, item) => {
+        return sum + (item.quantity * item.price);
+      }, 0);
+
+      onChangeRef.current({
+        ...valueRef.current,
+        lineItems: newLineItems,
+        total: calculatedTotal
+      });
     },
     []
   );
@@ -60,7 +74,17 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     const newLineItems = valueRef.current.lineItems.filter(
       (_, i) => i !== index
     );
-    onChangeRef.current({ ...valueRef.current, lineItems: newLineItems });
+
+    // Recalculate total after removing item
+    const calculatedTotal = newLineItems.reduce((sum, item) => {
+      return sum + (item.quantity * item.price);
+    }, 0);
+
+    onChangeRef.current({
+      ...valueRef.current,
+      lineItems: newLineItems,
+      total: calculatedTotal
+    });
   }, []);
   return (
     <div className="space-y-3 sm:space-y-4 overflow-y-auto px-1 sm:pr-2 py-2 sm:py-4">
@@ -85,29 +109,44 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             type="date"
             value={value.date}
             onChange={(e) => handleFieldChange("date", e.target.value)}
-            className="text-sm sm:text-base"
+            className="text-sm sm:text-base [&::-webkit-calendar-picker-indicator]:ml-auto"
           />
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="sm:col-span-1">
           <Label htmlFor="total" className="text-sm">
-            Total
+            Total <span className="text-xs text-muted-foreground">(double-click to edit)</span>
           </Label>
           <Input
             id="total"
             type="number"
-            value={value.total}
-            onChange={(e) =>
-              handleFieldChange("total", parseFloat(e.target.value) || 0)
-            }
-            className="text-sm sm:text-base"
+            value={value.total === 0 ? "" : value.total.toFixed(2)}
+            onDoubleClick={(e) => {
+              // Remove readonly on double-click to allow manual editing
+              e.currentTarget.readOnly = false;
+              e.currentTarget.classList.remove('bg-muted/50', 'cursor-not-allowed');
+              e.currentTarget.classList.add('bg-background');
+              e.currentTarget.select();
+            }}
+            onChange={(e) => {
+              // Allow manual editing when field is not readonly
+              if (!e.currentTarget.readOnly) {
+                handleFieldChange("total", parseFloat(e.target.value) || 0);
+              }
+            }}
+            onBlur={(e) => {
+              // Re-enable readonly and styling when focus is lost
+              e.currentTarget.readOnly = true;
+              e.currentTarget.classList.add('bg-muted/50', 'cursor-not-allowed');
+              e.currentTarget.classList.remove('bg-background');
+            }}
+            readOnly
+            className="text-sm sm:text-base bg-muted/50 cursor-not-allowed"
           />
         </div>
         <div className="sm:col-span-1">
-          <Label htmlFor="category" className="text-sm">
-            Category
-          </Label>
+          <Label className="text-sm">Category</Label>
           <Select
             value={value.category}
             onValueChange={(newValue) =>
@@ -118,12 +157,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Food & Drink">Food & Drink</SelectItem>
-              <SelectItem value="Groceries">Groceries</SelectItem>
-              <SelectItem value="Travel">Travel</SelectItem>
-              <SelectItem value="Shopping">Shopping</SelectItem>
-              <SelectItem value="Utilities">Utilities</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
+              {categories?.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -142,6 +180,47 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           />
         </div>
       </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 pb-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isRecurring"
+              checked={value.isRecurring || false}
+              onChange={(e) =>
+                handleFieldChange("isRecurring", e.target.checked)
+              }
+              className="h-4 w-4 rounded border-gray-300 text-focal-blue-600 focus:ring-focal-blue-500"
+            />
+            <Label htmlFor="isRecurring" className="text-sm cursor-pointer select-none font-medium">
+              Recurring Expense?
+            </Label>
+          </div>
+
+          {value.isRecurring && (
+            <div className="min-w-[140px]">
+              <Select
+                value={value.recurringFrequency || "monthly"}
+                onValueChange={(newValue) =>
+                  handleFieldChange("recurringFrequency", newValue)
+                }
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Frequency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="yearly">Yearly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+      </div>
+
       <h3 className="font-semibold pt-3 sm:pt-4 border-t text-sm sm:text-base">
         Line Items
       </h3>
@@ -164,7 +243,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               type="number"
               step="any"
               placeholder="Qty"
-              value={item.quantity}
+              value={item.quantity === 0 ? "" : item.quantity}
               onChange={(e) =>
                 handleLineItemChange(
                   index,
@@ -177,7 +256,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               className="col-span-4 sm:col-span-3 text-xs sm:text-sm"
               type="number"
               placeholder="Price"
-              value={item.price}
+              value={item.price === 0 ? "" : item.price}
               onChange={(e) =>
                 handleLineItemChange(
                   index,
@@ -189,10 +268,10 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="col-span-1 h-8 w-8 sm:h-10 sm:w-10"
+              className="col-span-1 h-8 w-8 sm:h-10 sm:w-10 hover:bg-destructive/10"
               onClick={() => removeLineItem(index)}
             >
-              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
+              <Trash2 className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
             </Button>
           </div>
         ))

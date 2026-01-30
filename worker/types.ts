@@ -9,6 +9,7 @@ export interface Env {
     BREVO_API_KEY?: string; // Optional: Brevo API key for sending transactional emails
     APP_URL?: string; // Optional: Application URL for email links (defaults to localhost in dev)
     ADMIN_EMAIL?: string; // Optional: Email address with admin access
+    SUPER_ADMIN_EMAIL?: string; // Optional: Super admin email address
 
     // AI Provider Configuration
     AI_PROVIDER?: string; // AI provider to use: 'gemini' | 'openai' | 'nvidia' | 'groq' (defaults to 'gemini')
@@ -38,15 +39,38 @@ export interface User {
     verification_token_expires?: number | null;
     created_at: number;
     updated_at: number;
+    role?: 'user' | 'admin' | 'super_admin';
+    is_active?: number; // 1 (active) or 0 (banned)
+    ban_reason?: string | null;
+    last_active_at?: number | null;
 }
 
-export interface ApiKey {
+export interface SystemLog {
+    id: string;
+    level: 'info' | 'warn' | 'error';
+    message: string;
+    details?: string;
+    timestamp: number;
+}
+
+export interface UserSettings {
     id: string;
     user_id: string;
     encrypted_key: string;
     default_currency: string;
     ai_provider?: string; // User's preferred AI provider: 'gemini' | 'openai' | 'nvidia' | 'groq'
     created_at: number;
+}
+
+export interface ApiAuthKey {
+    id: string;
+    user_id: string;
+    key_hash: string;
+    name: string;
+    prefix: string;
+    created_at: number;
+    last_used_at?: number;
+    expires_at?: number;
 }
 
 export interface Expense {
@@ -57,6 +81,7 @@ export interface Expense {
     total: number;
     currency: string;
     category: string;
+    category_id?: string;
     created_at: number;
     updated_at: number;
 }
@@ -77,6 +102,20 @@ export interface Session {
     created_at: number;
 }
 
+export interface Budget {
+    id: string;
+    user_id: string;
+    category: string;
+    limit_amount: number;
+    currency: string;
+    period: 'monthly' | 'yearly';
+    year: number;
+    month: number;
+    alert_threshold?: number;
+    created_at: number;
+    updated_at: number;
+}
+
 export interface JWTPayload {
     userId: string;
     email: string;
@@ -88,5 +127,33 @@ export interface APIResponse<T = unknown> {
     success: boolean;
     data?: T;
     error?: string;
-    message?: string;
 }
+
+export interface Category {
+    id: string;
+    user_id: string;
+    name: string;
+    icon?: string | null;
+    color?: string | null;
+    created_at: number;
+}
+
+export interface Tag {
+    id: string;
+    user_id: string;
+    name: string;
+    color?: string | null;
+    created_at: number;
+}
+
+export interface Notification {
+    id: string;
+    user_id: string;
+    type: string;
+    title: string;
+    message: string;
+    is_read: number;
+    data?: string | null;
+    created_at: number;
+}
+
