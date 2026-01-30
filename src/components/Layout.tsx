@@ -53,14 +53,14 @@ const NavbarItem = ({
     className={({ isActive }) =>
       cn(
         "flex flex-col items-center gap-1 p-2 rounded-xl transition-colors hover:bg-secondary/50 w-full group",
-        isActive && "bg-primary/10 text-primary"
+        isActive && "bg-primary/10"
       )
     }
   >
     {({ isActive }) => (
       <>
         <div className={cn("p-2 rounded-full transition-colors", isActive && "bg-primary/20")}>
-          <Icon className={cn("h-6 w-6 stroke-[2]", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+          <Icon className={cn("h-6 w-6 stroke-[2.5]", isActive ? "text-primary dark:text-primary" : "text-muted-foreground group-hover:text-foreground")} />
         </div>
         {!hideLabel && (
           <span className={cn("text-[10px] font-medium transition-colors", isActive ? "text-primary font-semibold" : "text-muted-foreground group-hover:text-foreground")}>
