@@ -14,6 +14,7 @@ import { Layout } from "@/components/Layout";
 import { MainLayout } from "@/components/MainLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CookieConsentBanner } from "@/components/CookieConsent";
 
 const router = createBrowserRouter([
   {
@@ -79,6 +80,7 @@ export function App() {
   return (
     <AuthProvider>
       <RouterProvider router={router} />
+      <CookieConsentBanner />
     </AuthProvider>
   );
 }
