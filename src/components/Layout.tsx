@@ -117,7 +117,7 @@ const DesktopNavRail: React.FC = () => {
       {/* Bottom: User & Settings */}
       <div className="flex flex-col items-center gap-4 w-full px-2">
         <NotificationBell />
-        <ThemeToggle className="hover:bg-secondary/50 p-2 rounded-xl w-10 h-10 flex items-center justify-center transition-colors" />
+        <ThemeToggle className="hover:bg-secondary/50 p-2 rounded-xl w-10 h-10 flex items-center justify-center transition-colors relative" />
         <NavbarItem
           to="/settings"
           icon={Settings}
