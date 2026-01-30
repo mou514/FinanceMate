@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 
 const authSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -29,6 +29,7 @@ interface AuthFormProps {
 export function AuthForm({ mode, onSubmit, onModeChange }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -123,16 +124,31 @@ export function AuthForm({ mode, onSubmit, onModeChange }: AuthFormProps) {
               </Link>
             )}
           </div>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            autoComplete={
-              mode === "login" ? "current-password" : "new-password"
-            }
-            disabled={isLoading}
-            {...register("password")}
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              autoComplete={
+                mode === "login" ? "current-password" : "new-password"
+              }
+              disabled={isLoading}
+              className="pr-10"
+              {...register("password")}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
           {errors.password && (
             <p className="text-sm text-destructive">
               {errors.password.message}
@@ -154,8 +170,8 @@ export function AuthForm({ mode, onSubmit, onModeChange }: AuthFormProps) {
             {isLoading
               ? "Please wait..."
               : mode === "login"
-              ? "Sign in"
-              : "Sign up"}
+                ? "Sign in"
+                : "Sign up"}
           </Button>
         </motion.div>
       </motion.form>
