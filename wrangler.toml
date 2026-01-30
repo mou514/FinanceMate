@@ -1,4 +1,4 @@
-name = "focal-expensi"
+name = "financemate"
 main = "worker/index.ts"
 compatibility_date = "2025-10-04"
 compatibility_flags = ["nodejs_compat"]
