@@ -10,18 +10,33 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
 
-const authSchema = z.object({
+const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(1, "Password is required"),
 });
 
-type AuthFormData = z.infer<typeof authSchema>;
+const signupSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  birthdate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Birthdate must be in YYYY-MM-DD format"),
+});
+
+type AuthFormData = z.infer<typeof signupSchema> & {
+  firstName?: string;
+  lastName?: string;
+  birthdate?: string;
+};
 
 interface AuthFormProps {
   mode: "login" | "signup";
   onSubmit: (
     email: string,
-    password: string
+    password: string,
+    firstName?: string,
+    lastName?: string,
+    birthdate?: string
   ) => Promise<{ success: boolean; error?: string }>;
   onModeChange: () => void;
 }
@@ -35,15 +50,29 @@ export function AuthForm({ mode, onSubmit, onModeChange }: AuthFormProps) {
     register,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm<AuthFormData>({
-    resolver: zodResolver(authSchema),
+    resolver: zodResolver(mode === "login" ? loginSchema : signupSchema) as any,
   });
+
+  // Reset form when mode changes
+  const handleModeChange = () => {
+    reset();
+    setError(null);
+    onModeChange();
+  };
 
   const onFormSubmit = async (data: AuthFormData) => {
     setIsLoading(true);
     setError(null);
 
-    const result = await onSubmit(data.email, data.password);
+    const result = await onSubmit(
+      data.email,
+      data.password,
+      mode === 'signup' ? data.firstName : undefined,
+      mode === 'signup' ? data.lastName : undefined,
+      mode === 'signup' ? data.birthdate : undefined
+    );
 
     if (!result.success) {
       setError(result.error || "An error occurred");
@@ -97,6 +126,50 @@ export function AuthForm({ mode, onSubmit, onModeChange }: AuthFormProps) {
         className="space-y-4"
         variants={containerVariants}
       >
+        {mode === 'signup' && (
+          <div className="grid grid-cols-2 gap-4">
+            <motion.div className="space-y-2" variants={itemVariants}>
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                placeholder="John"
+                disabled={isLoading}
+                {...register("firstName")}
+              />
+              {errors.firstName && (
+                <p className="text-sm text-destructive">{errors.firstName.message}</p>
+              )}
+            </motion.div>
+            <motion.div className="space-y-2" variants={itemVariants}>
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                placeholder="Doe"
+                disabled={isLoading}
+                {...register("lastName")}
+              />
+              {errors.lastName && (
+                <p className="text-sm text-destructive">{errors.lastName.message}</p>
+              )}
+            </motion.div>
+          </div>
+        )}
+
+        {mode === 'signup' && (
+          <motion.div className="space-y-2" variants={itemVariants}>
+            <Label htmlFor="birthdate">Birthdate</Label>
+            <Input
+              id="birthdate"
+              type="date"
+              disabled={isLoading}
+              {...register("birthdate")}
+            />
+            {errors.birthdate && (
+              <p className="text-sm text-destructive">{errors.birthdate.message}</p>
+            )}
+          </motion.div>
+        )}
+
         <motion.div className="space-y-2" variants={itemVariants}>
           <Label htmlFor="email">Email</Label>
           <Input
@@ -184,7 +257,7 @@ export function AuthForm({ mode, onSubmit, onModeChange }: AuthFormProps) {
         </span>
         <button
           type="button"
-          onClick={onModeChange}
+          onClick={handleModeChange}
           className="text-primary hover:underline font-medium"
           disabled={isLoading}
         >

@@ -229,7 +229,7 @@ export const HomePage: React.FC = () => {
           {/* Personalized Greeting */}
           <div className="space-y-2">
             <h2 className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground">
-              {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {user?.email?.split('@')[0] || "there"}!
+              {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, {user?.first_name || user?.email?.split('@')[0] || "there"}!
             </h2>
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-display font-bold text-balance leading-tight px-2">
               Track Your Spending with Ease

@@ -169,17 +169,20 @@ export class DBService {
 
     // ============ USER OPERATIONS ============
 
-    async createUser(id: string, email: string, passwordHash: string): Promise<User> {
+    async createUser(id: string, email: string, passwordHash: string, firstName: string, lastName: string, birthdate: string): Promise<User> {
         const now = Date.now();
         await this.db
-            .prepare('INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
-            .bind(id, email, passwordHash, now, now)
+            .prepare('INSERT INTO users (id, email, password_hash, first_name, last_name, birthdate, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+            .bind(id, email, passwordHash, firstName, lastName, birthdate, now, now)
             .run();
 
         return {
             id,
             email,
             password_hash: passwordHash,
+            first_name: firstName,
+            last_name: lastName,
+            birthdate,
             created_at: now,
             updated_at: now,
         };

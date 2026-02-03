@@ -43,6 +43,9 @@ export interface User {
     is_active?: number; // 1 (active) or 0 (banned)
     ban_reason?: string | null;
     last_active_at?: number | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    birthdate?: string | null;
 }
 
 export interface SystemLog {

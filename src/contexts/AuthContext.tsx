@@ -3,6 +3,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 interface User {
   id: string;
   email: string;
+  first_name?: string;
+  last_name?: string;
+  birthdate?: string;
   emailVerified?: boolean;
   role?: string;
 }
@@ -16,7 +19,10 @@ interface AuthContextType {
   ) => Promise<{ success: boolean; error?: string }>;
   signup: (
     email: string,
-    password: string
+    password: string,
+    firstName: string,
+    lastName: string,
+    birthdate: string
   ) => Promise<{ success: boolean; error?: string }>;
   forgotPassword: (
     email: string
@@ -121,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const signup = useCallback(async (email: string, password: string) => {
+  const signup = useCallback(async (email: string, password: string, firstName: string, lastName: string, birthdate: string) => {
     try {
       const response = await fetchWithTimeout("/api/auth/signup", {
         method: "POST",
@@ -129,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, firstName, lastName, birthdate }),
       });
 
       const data = await response.json();

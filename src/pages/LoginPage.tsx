@@ -14,11 +14,20 @@ export function LoginPage() {
     }
   }, [user, navigate]);
 
-  const handleSubmit = async (email: string, password: string) => {
+  const handleSubmit = async (
+    email: string,
+    password: string,
+    firstName?: string,
+    lastName?: string,
+    birthdate?: string
+  ) => {
     if (mode === "login") {
       return await login(email, password);
     } else {
-      return await signup(email, password);
+      if (!firstName || !lastName || !birthdate) {
+        return { success: false, error: "Please fill in all fields" };
+      }
+      return await signup(email, password, firstName, lastName, birthdate);
     }
   };
 

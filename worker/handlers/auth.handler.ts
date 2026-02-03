@@ -28,7 +28,7 @@ export async function signup(c: Context<{ Bindings: Env }>) {
         return error(validation.error, 400);
     }
 
-    const { email, password } = validation.data;
+    const { email, password, firstName, lastName, birthdate } = validation.data;
 
     // Check if user already exists
     const existingUser = await dbService.getUserByEmail(email);
@@ -41,7 +41,7 @@ export async function signup(c: Context<{ Bindings: Env }>) {
 
     // Create user
     const userId = crypto.randomUUID();
-    const user = await dbService.createUser(userId, email, passwordHash);
+    const user = await dbService.createUser(userId, email, passwordHash, firstName, lastName, birthdate);
 
     // Handle email verification
     let emailVerified = false;
@@ -57,7 +57,7 @@ export async function signup(c: Context<{ Bindings: Env }>) {
 
         const emailResult = await brevoService.sendVerificationEmail(
             email,
-            email.split('@')[0], // Use email username as name
+            firstName, // Use first name instead of email username
             verificationToken,
             appUrl
         );
@@ -107,6 +107,8 @@ export async function signup(c: Context<{ Bindings: Env }>) {
             user: {
                 id: user.id,
                 email: user.email,
+                first_name: user.first_name,
+                last_name: user.last_name,
                 emailVerified: emailVerified,
                 role: 'user', // Default role
             },
@@ -195,6 +197,8 @@ export async function login(c: Context<{ Bindings: Env }>) {
             user: {
                 id: user.id,
                 email: user.email,
+                first_name: user.first_name,
+                last_name: user.last_name,
                 emailVerified: user.email_verified === 1,
                 role: userRole,
             },
@@ -247,6 +251,8 @@ export async function me(c: Context<{ Bindings: Env; Variables: Variables }>) {
         success({
             id: user.id,
             email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
             emailVerified: user.email_verified === 1,
             role: userRole,
             created_at: user.created_at,
