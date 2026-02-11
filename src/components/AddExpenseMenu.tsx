@@ -26,6 +26,7 @@ interface AddExpenseMenuProps {
   onAudioComplete: (blob: Blob) => void;
   onManualEntry: () => void;
   isProcessing: boolean;
+  trigger?: React.ReactNode;
 }
 
 export const AddExpenseMenu: React.FC<AddExpenseMenuProps> = ({
@@ -34,6 +35,7 @@ export const AddExpenseMenu: React.FC<AddExpenseMenuProps> = ({
   onAudioComplete,
   onManualEntry,
   isProcessing,
+  trigger
 }) => {
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -84,11 +86,11 @@ export const AddExpenseMenu: React.FC<AddExpenseMenuProps> = ({
           <span>Upload Image</span>
         </Button>
         <div className="col-span-2 border rounded-md p-4 flex flex-col items-center justify-center gap-2 bg-muted/20">
-           <span className="text-sm font-medium mb-2">Voice Expense</span>
-           <AudioRecorder 
-             onRecordingComplete={handleAudio}
-             isProcessing={isProcessing}
-           />
+          <span className="text-sm font-medium mb-2">Voice Expense</span>
+          <AudioRecorder
+            onRecordingComplete={handleAudio}
+            isProcessing={isProcessing}
+          />
         </div>
         <Button
           variant="outline"
@@ -114,9 +116,11 @@ export const AddExpenseMenu: React.FC<AddExpenseMenuProps> = ({
     return (
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerTrigger asChild>
-          <Button size="icon" className="h-10 w-10 rounded-full shadow-lg bg-focal-blue-500 hover:bg-focal-blue-600 text-white">
-            <Plus className="h-6 w-6" />
-          </Button>
+          {trigger ? trigger : (
+            <Button size="icon" className="h-10 w-10 rounded-full shadow-lg bg-focal-blue-500 hover:bg-focal-blue-600 text-white">
+              <Plus className="h-6 w-6" />
+            </Button>
+          )}
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
@@ -136,10 +140,12 @@ export const AddExpenseMenu: React.FC<AddExpenseMenuProps> = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-focal-blue-500 hover:bg-focal-blue-600 text-white shadow-sm">
-          <Plus className="h-4 w-4" />
-          Add Expense
-        </Button>
+        {trigger ? trigger : (
+          <Button className="gap-2 bg-focal-blue-500 hover:bg-focal-blue-600 text-white shadow-sm">
+            <Plus className="h-4 w-4" />
+            Add Expense
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

@@ -10,7 +10,11 @@ export function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      navigate("/home", { replace: true });
+      if (user.emailVerified) {
+        navigate("/home", { replace: true });
+      } else {
+        navigate("/verify");
+      }
     }
   }, [user, navigate]);
 

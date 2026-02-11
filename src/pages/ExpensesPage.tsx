@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart,
@@ -127,8 +128,16 @@ export const ExpensesPage: React.FC = () => {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const location = useLocation();
 
   const { defaultCurrency } = useUserSettings();
+
+  // Refresh expenses when navigation state has refresh timestamp
+  useEffect(() => {
+    if (location.state?.refresh) {
+      fetchExpenses(searchTerm);
+    }
+  }, [location.state?.refresh]);
 
   // Get current month in MM format for default filter
   const getCurrentMonth = () => {

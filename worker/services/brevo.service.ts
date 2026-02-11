@@ -11,8 +11,8 @@ export class BrevoService {
 
     constructor(
         apiKey: string,
-        senderEmail: string = 'verification@focal.creative-geek.tech',
-        senderName: string = 'Focal - Financial Tracker'
+        senderEmail: string = 'verification@financemate.app',
+        senderName: string = 'FinanceMate'
     ) {
         if (!apiKey) {
             throw new Error('Brevo API key is not provided');
@@ -28,11 +28,10 @@ export class BrevoService {
     async sendVerificationEmail(
         recipientEmail: string,
         recipientName: string,
-        verificationToken: string,
+        verificationCode: string,
         appUrl: string
     ): Promise<{ success: boolean; messageId?: string; error?: string }> {
         try {
-            const verificationUrl = `${appUrl}/verify?token=${verificationToken}`;
             // Use PNG for email (Gmail blocks SVG), ensure URL is public even when testing locally
             const logoUrl = appUrl.includes('localhost')
                 ? 'https://focal.creative-geek.tech/images/logo-email.png'
@@ -49,7 +48,7 @@ export class BrevoService {
                         name: recipientName
                     }
                 ],
-                subject: 'Action Required: Verify your Focal account',
+                subject: 'Your Focal Verification Code',
                 headers: {
                     'X-Mailin-Tag': 'verification'
                 },
@@ -64,13 +63,13 @@ export class BrevoService {
         @media (max-width: 600px) {
             .container { width: 100% !important; padding: 16px !important; }
             .content { padding: 24px 20px !important; }
-            .button { width: 100% !important; box-sizing: border-box !important; }
+            .code-box { letter-spacing: 4px !important; font-size: 28px !important; }
         }
     </style>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
     <div style="display:none;font-size:1px;color:#737373;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
-        Please verify your email address to start tracking expenses with Focal.
+        Your verification code is ${verificationCode}. Please verify your email address to start tracking expenses.
     </div>
     <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
         <tr>
@@ -81,11 +80,8 @@ export class BrevoService {
                         <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #e5e5e5;">
                             <img src="${logoUrl}" alt="Focal" style="width: 48px; height: 48px; margin-bottom: 16px;" />
                             <h1 style="margin: 0; color: #0a0a0a; font-size: 24px; font-weight: 600; letter-spacing: -0.025em;">
-                                Welcome to Focal
+                                Verify Your Email
                             </h1>
-                            <p style="margin: 8px 0 0; color: #737373; font-size: 14px; font-weight: 400;">
-                                AI-Powered Expense Tracking
-                            </p>
                         </td>
                     </tr>
 
@@ -96,34 +92,23 @@ export class BrevoService {
                                 Hi ${recipientName},
                             </p>
                             <p style="margin: 0 0 24px; color: #525252; font-size: 15px; line-height: 1.6;">
-                                Thanks for signing up. To get started with tracking your expenses using AI-powered receipt scanning, please verify your email address.
+                                Thanks for signing up! Please use the verification code below to complete your registration.
                             </p>
 
-                            <!-- CTA Button -->
-                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
-                                <tr>
-                                    <td align="center">
-                                        <a href="${verificationUrl}" class="button" style="display: inline-block; padding: 12px 24px; background-color: #171717; color: #fafafa; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">
-                                            Verify Email Address
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <!-- Link fallback -->
-                            <div style="background-color: #f5f5f5; border-radius: 6px; padding: 16px; margin: 24px 0;">
-                                <p style="margin: 0 0 8px; color: #525252; font-size: 13px; font-weight: 500;">
-                                    Or copy and paste this link:
+                            <!-- Code Box -->
+                            <div style="background-color: #f5f5f5; border-radius: 8px; padding: 24px; margin: 32px 0; text-align: center;">
+                                <p style="margin: 0 0 8px; color: #737373; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
+                                    VERIFICATION CODE
                                 </p>
-                                <p style="margin: 0; color: #3b82f6; font-size: 13px; word-break: break-all; font-family: 'JetBrains Mono', 'Fira Code', monospace;">
-                                    ${verificationUrl}
+                                <p class="code-box" style="margin: 0; color: #0a0a0a; font-size: 32px; font-weight: 700; letter-spacing: 8px; font-family: 'JetBrains Mono', 'Fira Code', monospace;">
+                                    ${verificationCode}
                                 </p>
                             </div>
 
                             <!-- Notice -->
                             <div style="background-color: #fefce8; border-radius: 6px; padding: 12px 16px; margin: 24px 0; border-left: 3px solid #ca8a04;">
                                 <p style="margin: 0; color: #a16207; font-size: 13px; line-height: 1.5;">
-                                    <strong>Note:</strong> This link will expire in 24 hours for security reasons.
+                                    <strong>Note:</strong> This code will expire in 24 hours.
                                 </p>
                             </div>
 
@@ -142,11 +127,6 @@ export class BrevoService {
                                         <p style="margin: 0 0 12px; color: #525252; font-size: 13px;">
                                             Best regards,<br>
                                             <strong style="color: #0a0a0a;">The Focal Team</strong>
-                                        </p>
-                                        <p style="margin: 0; color: #a3a3a3; font-size: 12px;">
-                                            <a href="mailto:support@focal.creative-geek.tech" style="color: #737373; text-decoration: none;">Support</a>
-                                            <span style="color: #d4d4d4; margin: 0 8px;">|</span>
-                                            <a href="https://focal.creative-geek.tech" style="color: #737373; text-decoration: none;">Website</a>
                                         </p>
                                     </td>
                                 </tr>
@@ -172,15 +152,15 @@ export class BrevoService {
 </html>
                 `.trim(),
                 textContent: `
-Welcome to Focal!
+Verify Your Email
 
 Hi ${recipientName},
 
-Thanks for signing up! To get started with tracking your expenses using AI-powered receipt scanning, please verify your email address by visiting this link:
+Thanks for signing up! Please use the verification code below to complete your registration:
 
-${verificationUrl}
+${verificationCode}
 
-This link will expire in 24 hours for security reasons.
+This code will expire in 24 hours.
 
 If you didn't create an account with Focal, you can safely ignore this email.
 

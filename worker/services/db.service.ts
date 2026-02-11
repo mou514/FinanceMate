@@ -647,6 +647,41 @@ export class DBService {
             .run();
     }
 
+    // Verify email with code for a specific user (avoid collisions)
+    async verifyEmailCode(userId: string, code: string): Promise<{ success: boolean; error?: string }> {
+        const now = Date.now();
+
+        const user = await this.db
+            .prepare('SELECT id, email, verification_token, verification_token_expires, email_verified FROM users WHERE id = ?')
+            .bind(userId)
+            .first<{ id: string; email: string; verification_token: string; verification_token_expires: number; email_verified: number }>();
+
+        if (!user) {
+            return { success: false, error: 'User not found' };
+        }
+
+        if (user.email_verified === 1) {
+            return { success: false, error: 'Email already verified' };
+        }
+
+        if (user.verification_token !== code) {
+            return { success: false, error: 'Invalid verification code' };
+        }
+
+        if (user.verification_token_expires < now) {
+            return { success: false, error: 'Verification code expired' };
+        }
+
+        // Mark verified
+        await this.db
+            .prepare('UPDATE users SET email_verified = 1, verification_token = NULL, verification_token_expires = NULL WHERE id = ?')
+            .bind(userId)
+            .run();
+
+        return { success: true };
+    }
+
+    // Legacy method - kept for backward compatibility if needed, but verifyEmailCode is preferred
     async verifyEmail(token: string): Promise<{ success: boolean; userId?: string; error?: string }> {
         const now = Date.now();
 

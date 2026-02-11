@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Settings,
@@ -7,10 +7,11 @@ import {
   LayoutDashboard,
   TrendingUp,
   Camera,
-  Menu,
+  Lightbulb,
   X,
-  Plus
+  Loader
 } from "lucide-react";
+import Webcam from "react-webcam";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./ThemeToggle";
@@ -19,21 +20,56 @@ import { UserMenu } from "./UserMenu";
 import { NotificationBell } from "./NotificationBell";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AnimatePresence, motion } from "framer-motion";
+import { useExpenseCreation } from "@/hooks/useExpenseCreation";
+import { AddExpenseMenu } from "./AddExpenseMenu";
+import { ReviewExpenseDialog } from "./ReviewExpenseDialog";
+import { ReceiptReviewDialog } from "./ReceiptReviewDialog";
+import { ExpenseData } from "@/lib/expense-service";
+import { Toaster, toast } from "sonner"; // Ensure Toaster is present if not already in App
+
+const videoConstraints = {
+  width: 1280,
+  height: 720,
+  facingMode: "environment",
+};
 
 // --- Components ---
 
-const FabInteraction: React.FC = () => {
-  const navigate = useNavigate();
+interface FabInteractionProps {
+  onScan: () => void;
+  onUploadImage: (file: File) => void;
+  onAudioComplete: (blob: Blob) => void;
+  onManualEntry: () => void;
+  isProcessing: boolean;
+}
+
+const FabInteraction: React.FC<FabInteractionProps> = ({
+  onScan,
+  onUploadImage,
+  onAudioComplete,
+  onManualEntry,
+  isProcessing
+}) => {
   return (
-    <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      onClick={() => navigate('/expenses')}
-      className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-50 bg-primary text-primary-foreground p-4 rounded-2xl shadow-lg hover:shadow-xl transition-shadow flex items-center gap-2"
-    >
-      <Camera className="h-6 w-6" />
-      <span className="font-medium hidden sm:inline-block">Scan Receipt</span>
-    </motion.button>
+    <div className="fixed bottom-20 right-4 sm:bottom-8 sm:right-8 z-50">
+      <AddExpenseMenu
+        onScan={onScan}
+        onUploadImage={onUploadImage}
+        onAudioComplete={onAudioComplete}
+        onManualEntry={onManualEntry}
+        isProcessing={isProcessing}
+        trigger={
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="bg-primary text-primary-foreground p-4 rounded-2xl shadow-lg hover:shadow-xl transition-shadow flex items-center gap-2"
+          >
+            <Camera className="h-6 w-6" />
+            <span className="font-medium hidden sm:inline-block">Scan Receipt</span>
+          </motion.button>
+        }
+      />
+    </div>
   );
 };
 
@@ -221,6 +257,79 @@ const MobileBottomNav: React.FC = () => {
 };
 
 export const Layout: React.FC = () => {
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Create expense state
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [audioReceipts, setAudioReceipts] = useState<ExpenseData[]>([]);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const webcamRef = useRef<Webcam>(null);
+
+  const {
+    isProcessing,
+    isSaving,
+    extractedData,
+    setExtractedData,
+    originalData,
+    setError,
+    handleImageProcessing,
+    handleAudioProcessing,
+    handleManualEntry,
+    handleSave,
+  } = useExpenseCreation();
+
+  const onSaveSuccess = async () => {
+    const success = await handleSave();
+    if (success) {
+      if (window.location.pathname !== "/expenses") {
+        navigate("/expenses", { state: { refresh: Date.now() } });
+      } else {
+        // Force refresh by passing new state
+        navigate("/expenses", { state: { refresh: Date.now() } });
+      }
+    }
+  };
+
+  const handleAudioComplete = async (blob: Blob) => {
+    const results = await handleAudioProcessing(blob);
+    if (results && results.length > 0) {
+      setAudioReceipts(results);
+      setIsReviewDialogOpen(true);
+    }
+  };
+
+  const handleReviewSaveComplete = () => {
+    navigate("/expenses", { state: { refresh: Date.now() } });
+  };
+
+  const capture = useCallback(async () => {
+    if (webcamRef.current && !isProcessing) {
+      const imageSrc = webcamRef.current.getScreenshot();
+      if (imageSrc) {
+        setIsCameraOpen(false);
+        handleImageProcessing(imageSrc);
+      }
+    }
+  }, [webcamRef, isProcessing, handleImageProcessing]);
+
+  const handleUploadImage = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64Image = e.target?.result as string;
+      if (base64Image) {
+        handleImageProcessing(base64Image);
+      }
+    };
+    reader.onerror = () => {
+      toast.error("Upload Error", {
+        description: "Failed to read the image file.",
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground font-sans transition-colors duration-300">
       {/* Desktop Navigation Rail */}
@@ -238,10 +347,111 @@ export const Layout: React.FC = () => {
       </main>
 
       {/* Floating Action Button */}
-      <FabInteraction />
+      <FabInteraction
+        onScan={() => {
+          if (isMobile) {
+            // For mobile, we might want to trigger a file input with capture="environment"
+            // But existing behavior in HomePage maps 'Scan' to setIsCameraOpen for desktop, 
+            // and for mobile HomePage used file input. AddExpenseMenu handles this?
+            // AddExpenseMenu calls `onScan`.
+            // If we want consistent behavior:
+            if (isMobile) {
+              fileInputRef.current?.click();
+            } else {
+              setIsCameraOpen(true);
+            }
+          } else {
+            setIsCameraOpen(true);
+          }
+        }}
+        onUploadImage={handleUploadImage}
+        onAudioComplete={handleAudioComplete}
+        onManualEntry={handleManualEntry}
+        isProcessing={isProcessing}
+      />
+
+      {/* Hidden input for mobile camera capture if needed, mirroring HomePage logic */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleUploadImage(file);
+          e.target.value = "";
+        }}
+      />
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
+
+      {/* Global Dialogs/Modals for Expense Creation */}
+      <AnimatePresence>
+        {isCameraOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-4"
+          >
+            <div className="relative w-full max-w-4xl">
+              <Webcam
+                audio={false}
+                ref={webcamRef}
+                screenshotFormat="image/jpeg"
+                videoConstraints={videoConstraints}
+                className="rounded-lg shadow-2xl w-full"
+              />
+              <div className="absolute bottom-4 left-4 right-4 bg-black/50 text-white p-3 rounded-lg text-sm flex items-center gap-3">
+                <Lightbulb className="h-5 w-5 text-yellow-300 flex-shrink-0" />
+                <span>
+                  For best results: ensure good lighting and place the receipt
+                  on a flat, contrasting surface.
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 mt-6">
+              <Button
+                onClick={capture}
+                disabled={isProcessing}
+                className="w-20 h-20 rounded-full bg-white hover:bg-gray-200 ring-4 ring-white ring-offset-4 ring-offset-black/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isProcessing ? (
+                  <Loader className="h-10 w-10 text-black animate-spin" />
+                ) : (
+                  <Camera className="h-10 w-10 text-black" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => !isProcessing && setIsCameraOpen(false)}
+                disabled={isProcessing}
+                className="absolute top-6 right-6 text-white hover:bg-white/20 w-12 h-12 rounded-full disabled:opacity-50"
+              >
+                <X className="h-8 w-8" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <ReviewExpenseDialog
+        isMobile={isMobile}
+        isProcessing={isProcessing}
+        isSaving={isSaving}
+        extractedData={extractedData}
+        setExtractedData={setExtractedData}
+        handleSave={onSaveSuccess}
+        originalData={originalData}
+      />
+      <ReceiptReviewDialog
+        open={isReviewDialogOpen}
+        onOpenChange={setIsReviewDialogOpen}
+        receipts={audioReceipts}
+        onSaveComplete={handleReviewSaveComplete}
+      />
     </div>
   );
 };

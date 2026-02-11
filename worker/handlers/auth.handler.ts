@@ -46,10 +46,10 @@ export async function signup(c: Context<{ Bindings: Env }>) {
     // Handle email verification
     let emailVerified = false;
     if (env.BREVO_API_KEY) {
-        // Generate verification token (24 hour expiry)
-        const verificationToken = authService.generateVerificationToken();
+        // Generate verification code (24 hour expiry)
+        const verificationCode = authService.generateVerificationCode();
         const verificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-        await dbService.setVerificationToken(userId, verificationToken, verificationExpires);
+        await dbService.setVerificationToken(userId, verificationCode, verificationExpires);
 
         // Send verification email via Brevo
         const brevoService = new BrevoService(env.BREVO_API_KEY);
@@ -58,7 +58,7 @@ export async function signup(c: Context<{ Bindings: Env }>) {
         const emailResult = await brevoService.sendVerificationEmail(
             email,
             firstName, // Use first name instead of email username
-            verificationToken,
+            verificationCode,
             appUrl
         );
 
@@ -74,6 +74,8 @@ export async function signup(c: Context<{ Bindings: Env }>) {
         await dbService.verifyEmailDirectly(userId);
         emailVerified = true;
     }
+
+
 
     // Log user signup
     await dbService.addSystemLog('info', `New user registered: ${email}`, `User ID: ${userId}`);
@@ -288,6 +290,40 @@ export async function verifyEmail(c: Context<{ Bindings: Env }>) {
 }
 
 /**
+ * POST /api/auth/verify
+ * Verify email address with code (authenticated)
+ */
+export async function verifyCode(c: Context<{ Bindings: Env; Variables: Variables }>) {
+    const env = c.env;
+    const userId = c.get('userId');
+
+    try {
+        const body = await c.req.json();
+        const { code } = body;
+
+        if (!code || typeof code !== 'string') {
+            return error('Verification code is required', 400);
+        }
+
+        const dbService = new DBService(env.DB);
+        const result = await dbService.verifyEmailCode(userId, code);
+
+        if (!result.success) {
+            return error(result.error || 'Verification failed', 400);
+        }
+
+        return json(
+            success(
+                { userId },
+                'Email verified successfully! You can now use all features.'
+            )
+        );
+    } catch (e) {
+        return error('Invalid request body', 400);
+    }
+}
+
+/**
  * POST /api/auth/resend-verification
  * Resend verification email
  */
@@ -308,10 +344,10 @@ export async function resendVerification(c: Context<{ Bindings: Env; Variables: 
         return error('Email already verified', 400);
     }
 
-    // Generate new verification token
-    const verificationToken = authService.generateVerificationToken();
+    // Generate new verification code
+    const verificationCode = authService.generateVerificationCode();
     const verificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-    await dbService.resendVerificationToken(userId, verificationToken, verificationExpires);
+    await dbService.resendVerificationToken(userId, verificationCode, verificationExpires);
 
     // Send verification email
     if (env.BREVO_API_KEY) {
@@ -320,8 +356,8 @@ export async function resendVerification(c: Context<{ Bindings: Env; Variables: 
 
         const emailResult = await brevoService.sendVerificationEmail(
             user.email,
-            user.email.split('@')[0],
-            verificationToken,
+            user.first_name || user.email.split('@')[0],
+            verificationCode,
             appUrl
         );
 
@@ -332,7 +368,7 @@ export async function resendVerification(c: Context<{ Bindings: Env; Variables: 
 
         return json(
             success({
-                message: 'Verification email sent. Please check your inbox.',
+                message: 'Verification code sent. Please check your inbox.',
             })
         );
     } else {

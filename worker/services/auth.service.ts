@@ -66,4 +66,18 @@ export class AuthService {
         crypto.getRandomValues(array);
         return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
     }
+
+    /**
+     * Generate a 6-digit verification code
+     */
+    generateVerificationCode(): string {
+        const min = 100000;
+        const max = 999999;
+        const array = new Uint32Array(1);
+        crypto.getRandomValues(array);
+        // Use modulo to get a number in range, then add min to ensure 6 digits
+        // Note: subtle bias with modulo but acceptable for 6-digit OTPs
+        const randomNum = (array[0] % (max - min + 1)) + min;
+        return randomNum.toString();
+    }
 }

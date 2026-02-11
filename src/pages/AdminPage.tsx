@@ -219,7 +219,10 @@ const UserRow: React.FC<{
                   size="sm"
                   className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
                   disabled={isUpdatingStatus}
-                  onClick={() => onDelete(user)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(user);
+                  }}
                   title="Delete User"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -711,8 +714,6 @@ export const AdminPage: React.FC = () => {
                     <TableHead>Joined</TableHead>
                     <TableHead>Expenses</TableHead>
                     <TableHead>Last Active</TableHead>
-                    <TableHead>AI Provider</TableHead>
-                    <TableHead>Currency</TableHead>
                     <TableHead>AI Provider</TableHead>
                     <TableHead>Currency</TableHead>
                     <TableHead className="w-10"></TableHead>

@@ -59,6 +59,7 @@ export function createRouter() {
     app.post('/auth/logout', authMiddleware, authHandler.logout);
     app.get('/auth/me', authMiddleware, authHandler.me);
     app.get('/auth/verify/:token', authHandler.verifyEmail);
+    app.post('/auth/verify', authMiddleware, authHandler.verifyCode);
     // Rate limit: 3 requests per 15 minutes
     const resendVerificationLimiter = rateLimit(
         'resend-verification',

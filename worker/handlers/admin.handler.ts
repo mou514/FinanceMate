@@ -118,7 +118,7 @@ export async function checkAdmin(c: HonoContext) {
         success: true,
         data: {
             isAdmin: true,
-            role: userRole || (userEmail === c.env.SUPER_ADMIN_EMAIL ? 'super_admin' : 'admin')
+            role: (c.env.SUPER_ADMIN_EMAIL && userEmail === c.env.SUPER_ADMIN_EMAIL) ? 'super_admin' : (userRole || 'admin')
         },
     });
 }
@@ -282,7 +282,9 @@ export async function deleteUser(c: HonoContext) {
     const userRole = c.get('userRole');
     const targetUserId = c.req.param('userId');
 
-    if (!userEmail || userRole !== 'super_admin') {
+    const isSuperAdmin = userRole === 'super_admin' || (c.env.SUPER_ADMIN_EMAIL && userEmail === c.env.SUPER_ADMIN_EMAIL);
+
+    if (!userEmail || !isSuperAdmin) {
         return c.json({ success: false, error: 'Unauthorized' }, 403);
     }
 
